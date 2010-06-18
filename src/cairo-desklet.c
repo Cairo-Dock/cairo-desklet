@@ -83,7 +83,7 @@ int main (int argc, char** argv)
 			"list all the available modules.", NULL},
 		{"List", 'L', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
 			&bListModules,
-			"address of a server containing additional themes. This will overwrite the default server address.", NULL},
+			"list of available applets.", NULL},
 		{NULL}
 	};
 
@@ -102,7 +102,7 @@ int main (int argc, char** argv)
 		return 0;
 	}
 	
-	if (cModulesNames == NULL)
+	if (cModulesNames == NULL && !bListModules)
 	{
 		g_print ("You must specify at least 1 module to load\n");
 		/// affcher la liste des modules ...
@@ -238,6 +238,8 @@ int main (int argc, char** argv)
 	if (bListModules)
 	{
 		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
+		if (cModulesNames == NULL)
+			exit (1);
 	}
 	
 	//\___________________ On definit le backend des GUI.

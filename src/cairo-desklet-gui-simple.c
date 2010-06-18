@@ -253,12 +253,10 @@ static gboolean _test_one_module_name (GtkTreeModel *model, GtkTreePath *path, G
 	return FALSE;
 }
 
-static GSList *get_widgets_from_name (const gchar *cGroupName, const gchar *cKeyName)
+static CairoDockGroupKeyWidget *get_widget_from_name (const gchar *cGroupName, const gchar *cKeyName)
 {
 	g_return_val_if_fail (s_pSimpleConfigModuleWindow != NULL, NULL);
-	GSList *pCurrentModuleWidgetList = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "widget-list");
-	g_return_val_if_fail (pCurrentModuleWidgetList != NULL, NULL);
-	return cairo_dock_find_widgets_from_name (pCurrentModuleWidgetList, cGroupName, cKeyName);
+	return cairo_dock_gui_find_group_key_widget (s_pSimpleConfigModuleWindow, cGroupName, cKeyName);
 }
 
 static void close_gui (void)
@@ -289,7 +287,7 @@ void cairo_dock_register_simple_gui_backend (void)
 	pBackend->set_status_message_on_gui = set_status_message_on_gui;
 	pBackend->module_is_opened 			= module_is_opened;
 	pBackend->deactivate_module_in_gui 	= NULL;
-	pBackend->get_widgets_from_name 	= get_widgets_from_name;
+	pBackend->get_widget_from_name 		= get_widget_from_name;
 	pBackend->close_gui 				= close_gui;
 	
 	cairo_dock_register_gui_backend (pBackend);
