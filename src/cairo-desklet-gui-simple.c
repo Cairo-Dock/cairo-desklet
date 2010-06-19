@@ -24,7 +24,7 @@
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
 
-#include "../config.h"
+#include "config.h"
 #include <cairo-dock.h>
 #include "cairo-desklet-gui-simple.h"
 
