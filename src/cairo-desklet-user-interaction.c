@@ -37,29 +37,7 @@ gboolean cairo_dock_notification_click_icon (gpointer pUserData, Icon *icon, Cai
 	//g_print ("+ %s (%s)\n", __func__, icon ? icon->cName : "no icon");
 	if (icon == NULL)
 		return CAIRO_DOCK_LET_PASS_NOTIFICATION;
-	if (CAIRO_DOCK_IS_URI_LAUNCHER (icon))  // URI : on lance ou on monte.
-	{
-		cd_debug (" uri launcher");
-		gboolean bIsMounted = FALSE;
-		if (icon->iVolumeID > 0)
-		{
-			gchar *cActivationURI = cairo_dock_fm_is_mounted (icon->cBaseURI, &bIsMounted);
-			g_free (cActivationURI);
-		}
-		if (icon->iVolumeID > 0 && ! bIsMounted)
-		{
-			int answer = cairo_dock_ask_question_and_wait (_("Do you want to mount this device?"), icon, CAIRO_CONTAINER (pDock));
-			if (answer != GTK_RESPONSE_YES)
-			{
-				return CAIRO_DOCK_LET_PASS_NOTIFICATION;
-			}
-			cairo_dock_fm_mount (icon, CAIRO_CONTAINER (pDock));
-		}
-		else
-			cairo_dock_fm_launch_uri (icon->cCommand);
-		return CAIRO_DOCK_INTERCEPT_NOTIFICATION;
-	}
-	else if (CAIRO_DOCK_IS_LAUNCHER (icon))
+	if (CAIRO_DOCK_IS_LAUNCHER (icon))
 	{
 		if (icon->cCommand != NULL && strcmp (icon->cCommand, "none") != 0)  // finalement, on lance la commande.
 		{

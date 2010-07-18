@@ -33,19 +33,19 @@ IF(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 ENDIF(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 
 IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  FILE(INSTALL DESTINATION "/usr/share/cairo-dock" TYPE FILE FILES
+  FILE(INSTALL DESTINATION "/usr/share/cairo-desklet" TYPE FILE FILES
     "/home/fab/CD2/cairo-desklet/data/rotate-desklet.svg"
     "/home/fab/CD2/cairo-desklet/data/no-input-desklet.png"
     "/home/fab/CD2/cairo-desklet/data/depth-rotate-desklet.svg"
     "/home/fab/CD2/cairo-desklet/data/cairo-dock-ok.svg"
     "/home/fab/CD2/cairo-desklet/data/cairo-dock-cancel.svg"
     "/home/fab/CD2/cairo-desklet/data/cairo-dock-logo.png"
-    "/home/fab/CD2/cairo-desklet/data/cairo-dock.svg"
+    "/home/fab/CD2/cairo-desklet/data/cairo-desklet.svg"
     "/home/fab/CD2/cairo-desklet/data/cairo-desklet.conf"
     )
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
 IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  FILE(INSTALL DESTINATION "/usr/share/pixmaps" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-dock.svg")
+  FILE(INSTALL DESTINATION "/usr/share/pixmaps" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-desklet.svg")
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
