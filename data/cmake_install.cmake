@@ -41,8 +41,11 @@ IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
     "/home/fab/CD2/cairo-desklet/data/cairo-dock-cancel.svg"
     "/home/fab/CD2/cairo-desklet/data/cairo-dock-logo.png"
     "/home/fab/CD2/cairo-desklet/data/cairo-desklet.svg"
-    "/home/fab/CD2/cairo-desklet/data/cairo-desklet.conf"
     )
+ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
+
+IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
+  FILE(INSTALL DESTINATION "/usr/share/cairo-desklet" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-desklet.conf")
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
 IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")

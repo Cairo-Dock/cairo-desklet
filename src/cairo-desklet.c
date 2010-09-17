@@ -19,6 +19,11 @@
 #include "cairo-desklet-gui-simple.h"
 
 #define CAIRO_DOCK_THEME_SERVER "http://themes.glx-dock.org"
+#define CAIRO_DOCK_CURRENT_THEME_NAME "current_theme"
+// Nom du repertoire des themes extras.
+#define CAIRO_DOCK_EXTRAS_DIR "extras"
+// Nom du repertoire des themes de dock.
+#define CAIRO_DOCK_THEMES_DIR "themes"
 
 extern gboolean g_bUseOpenGL;
 extern CairoDockDesktopEnv g_iDesktopEnv;
@@ -112,16 +117,17 @@ int main (int argc, char** argv)
 	cd_log_set_level_from_name (cVerbosity);
 	g_free (cVerbosity);
 	
+	CairoDockDesktopEnv iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
 	if (cEnvironment != NULL)
 	{
 		if (strcmp (cEnvironment, "gnome") == 0)
-			g_iDesktopEnv = CAIRO_DOCK_GNOME;
+			iDesktopEnv = CAIRO_DOCK_GNOME;
 		else if (strcmp (cEnvironment, "kde") == 0)
-			g_iDesktopEnv = CAIRO_DOCK_KDE;
+			iDesktopEnv = CAIRO_DOCK_KDE;
 		else if (strcmp (cEnvironment, "xfce") == 0)
-			g_iDesktopEnv = CAIRO_DOCK_XFCE;
+			iDesktopEnv = CAIRO_DOCK_XFCE;
 		else if (strcmp (cEnvironment, "none") == 0)
-			g_iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
+			iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
 		else
 			cd_warning ("unknown environnment '%s'", cEnvironment);
 		g_free (cEnvironment);
@@ -180,9 +186,7 @@ int main (int argc, char** argv)
 	cd_keybinder_init();
 	
 	//\___________________ On detecte l'environnement de bureau (apres X et avant les modules).
-	if (g_iDesktopEnv == CAIRO_DOCK_UNKNOWN_ENV)
-		g_iDesktopEnv = cairo_dock_guess_environment ();
-	cd_debug ("environnement de bureau : %d", g_iDesktopEnv);
+	cairo_dock_init_desktop_environment_manager (iDesktopEnv);
 	
 	//\___________________ On enregistre les implementations.
 	cairo_dock_register_built_in_data_renderers ();
@@ -280,6 +284,8 @@ int main (int argc, char** argv)
 		_load_internal_module_config ("Labels", pKeyFile);
 		
 		_load_internal_module_config ("System", pKeyFile);
+		
+		_load_internal_module_config ("Icons", pKeyFile);
 		
 		g_key_file_free (pKeyFile);
 	}
