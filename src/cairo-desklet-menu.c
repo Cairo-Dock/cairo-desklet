@@ -31,6 +31,7 @@
 
 #include "config.h"
 #include <cairo-dock.h>
+#include "cairo-desklet-user-interaction.h"
 #include "cairo-desklet-menu.h"
 
 #define CAIRO_DOCK_CONF_PANEL_WIDTH 800
@@ -247,8 +248,6 @@ static void _cairo_dock_remove_module_instance (GtkMenuItem *pMenuItem, gpointer
 	int answer = cairo_dock_ask_question_and_wait (question, icon, CAIRO_CONTAINER (pContainer));
 	if (answer == GTK_RESPONSE_YES)
 	{
-		if (icon->pModuleInstance->pModule->pInstancesList->next == NULL)  // plus d'instance du module apres ca.
-			cairo_dock_deactivate_module_in_gui (icon->pModuleInstance->pModule->pVisitCard->cModuleName);
 		cairo_dock_remove_module_instance (icon->pModuleInstance);
 	}
 }
@@ -371,6 +370,7 @@ static void _cairo_dock_change_window_above (GtkMenuItem *pMenuItem, gpointer *d
 static inline void _cairo_dock_set_desklet_accessibility (CairoDesklet *pDesklet, CairoDeskletVisibility iVisibility)
 {
 	cairo_dock_set_desklet_accessibility (pDesklet, iVisibility, TRUE);  // TRUE <=> save state in conf.
+	cairo_dock_gui_trigger_update_desklet_visibility (pDesklet);
 }
 static void _cairo_dock_keep_below (GtkCheckMenuItem *pMenuItem, gpointer *data)
 {

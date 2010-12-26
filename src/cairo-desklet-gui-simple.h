@@ -17,7 +17,6 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef __CAIRO_DOCK_GUI_SIMPLE__
 #define  __CAIRO_DOCK_GUI_SIMPLE__
 

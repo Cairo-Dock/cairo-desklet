@@ -26,6 +26,7 @@
 
 #include "config.h"
 #include <cairo-dock.h>
+#include "cairo-desklet-user-interaction.h"
 #include "cairo-desklet-gui-simple.h"
 
 #define CAIRO_DOCK_PREVIEW_WIDTH 200
@@ -85,10 +86,10 @@ static inline GtkWidget * _present_module_widget (GtkWidget *pWindow, CairoDockM
 	g_object_set_data (G_OBJECT (pWindow), "conf-file", g_strdup (cConfFilePath));
 	g_object_set_data (G_OBJECT (pWindow), "widget-list", pWidgetList);
 	g_object_set_data (G_OBJECT (pWindow), "garbage", pDataGarbage);
-	if (pInstance != NULL)
-		g_object_set_data (G_OBJECT (pWindow), "module", (gpointer)pInstance->pModule->pVisitCard->cModuleName);
 	
-	if (pInstance != NULL && pInstance->pModule->pInterface->load_custom_widget != NULL)
+	s_cCurrentModuleName = pInstance->pModule->pVisitCard->cModuleName;
+	
+	if (pInstance->pModule->pInterface->load_custom_widget != NULL)
 		pInstance->pModule->pInterface->load_custom_widget (pInstance, pKeyFile);
 	
 	g_key_file_free (pKeyFile);
@@ -156,7 +157,6 @@ static void show_module_instance_gui (CairoDockModuleInstance *pModuleInstance, 
 		cOriginalConfFilePath);
 	
 	g_free (cOriginalConfFilePath);
-	s_cCurrentModuleName = pModuleInstance->pModule->pVisitCard->cModuleName;
 	
 	gtk_widget_show_all (s_pSimpleConfigModuleWindow);
 	if (iNotebookPage != -1 && GTK_IS_NOTEBOOK (pGroupWidget))
@@ -196,7 +196,6 @@ static void show_module_gui (const gchar *cModuleName)
 	
 	gtk_widget_show_all (s_pSimpleConfigModuleWindow);
 	g_free (cOriginalConfFilePath);
-	s_cCurrentModuleName = pModule->pVisitCard->cModuleName;
 }
 
 static void set_status_message_on_gui (const gchar *cMessage)
@@ -259,36 +258,177 @@ static CairoDockGroupKeyWidget *get_widget_from_name (const gchar *cGroupName, c
 	return cairo_dock_gui_find_group_key_widget (s_pSimpleConfigModuleWindow, cGroupName, cKeyName);
 }
 
-static void close_gui (void)
+static void reload_current_widget (int iShowPage)
 {
-	if (s_pSimpleConfigModuleWindow != NULL)
+	g_return_if_fail (s_pSimpleConfigModuleWindow != NULL && s_cCurrentModuleName != NULL);
+	
+	CairoDockModule *pModule = cairo_dock_find_module_from_name (s_cCurrentModuleName);
+	g_return_if_fail (pModule != NULL && pModule->pInstancesList != NULL);
+	
+	gchar *cConfFilePath = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "conf-file");
+	g_return_if_fail (cConfFilePath == NULL);
+	
+	CairoDockModuleInstance *pModuleInstance;
+	GList *pElement;
+	for (pElement = pModule->pInstancesList; pElement != NULL; pElement= pElement->next)
 	{
-		GtkWidget *pMainVBox = gtk_bin_get_child (GTK_BIN (s_pSimpleConfigModuleWindow));
-		GList *children = gtk_container_get_children (GTK_CONTAINER (pMainVBox));
-		GList *w = g_list_last (children);
-		GtkWidget *pButtonsHBox = w->data;
-		
-		children = gtk_container_get_children (GTK_CONTAINER (pButtonsHBox));
-		w = g_list_last (children);
-		GtkWidget *pQuitButton = w->data;
-		
-		gboolean bReturn;
-		g_signal_emit_by_name (pQuitButton, "clicked", NULL, &bReturn);
+		pModuleInstance = pElement->data;
+		if (strcmp (pModuleInstance->cConfFilePath, cConfFilePath) == 0)
+			break ;
 	}
+	g_return_if_fail (pElement != NULL);
+	
+	show_module_instance_gui (pModuleInstance, iShowPage);
+}
+
+
+
+static void cairo_dock_update_desklet_widgets (CairoDesklet *pDesklet, GSList *pWidgetList)
+{
+	CairoDockGroupKeyWidget *pGroupKeyWidget;
+	GtkWidget *pOneWidget;
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "locked");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	gtk_toggle_button_set_active  (GTK_TOGGLE_BUTTON (pOneWidget), pDesklet->bPositionLocked);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "size");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	g_signal_handlers_block_matched (pOneWidget,
+		(GSignalMatchType) G_SIGNAL_MATCH_FUNC,
+		0, 0, NULL, _cairo_dock_set_value_in_pair, NULL);
+	gtk_spin_button_set_value (GTK_SPIN_BUTTON (pOneWidget), pDesklet->container.iWidth);
+	g_signal_handlers_unblock_matched (pOneWidget,
+			(GSignalMatchType) G_SIGNAL_MATCH_FUNC,
+			0, 0, NULL, _cairo_dock_set_value_in_pair, NULL);
+	if (pGroupKeyWidget->pSubWidgetList->next != NULL)
+	{
+		pOneWidget = pGroupKeyWidget->pSubWidgetList->next->data;
+		g_signal_handlers_block_matched (pOneWidget,
+			(GSignalMatchType) G_SIGNAL_MATCH_FUNC,
+			0, 0, NULL, _cairo_dock_set_value_in_pair, NULL);
+		gtk_spin_button_set_value (GTK_SPIN_BUTTON (pOneWidget), pDesklet->container.iHeight);
+		g_signal_handlers_unblock_matched (pOneWidget,
+			(GSignalMatchType) G_SIGNAL_MATCH_FUNC,
+			0, 0, NULL, _cairo_dock_set_value_in_pair, NULL);
+	}
+	
+	int iRelativePositionX = (pDesklet->container.iWindowPositionX + pDesklet->container.iWidth/2 <= g_desktopGeometry.iXScreenWidth[CAIRO_DOCK_HORIZONTAL]/2 ? pDesklet->container.iWindowPositionX : pDesklet->container.iWindowPositionX - g_desktopGeometry.iXScreenWidth[CAIRO_DOCK_HORIZONTAL]);
+	int iRelativePositionY = (pDesklet->container.iWindowPositionY + pDesklet->container.iHeight/2 <= g_desktopGeometry.iXScreenHeight[CAIRO_DOCK_HORIZONTAL]/2 ? pDesklet->container.iWindowPositionY : pDesklet->container.iWindowPositionY - g_desktopGeometry.iXScreenHeight[CAIRO_DOCK_HORIZONTAL]);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "x position");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	gtk_spin_button_set_value (GTK_SPIN_BUTTON (pOneWidget), iRelativePositionX);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "y position");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	gtk_spin_button_set_value (GTK_SPIN_BUTTON (pOneWidget), iRelativePositionY);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "rotation");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	gtk_range_set_value (GTK_RANGE (pOneWidget), pDesklet->fRotation/G_PI*180.);
+}
+
+static void cairo_dock_update_desklet_visibility_widgets (CairoDesklet *pDesklet, GSList *pWidgetList)
+{
+	CairoDockGroupKeyWidget *pGroupKeyWidget;
+	GtkWidget *pOneWidget;
+	Window Xid = GDK_WINDOW_XID (pDesklet->container.pWidget->window);
+	gboolean bIsAbove=FALSE, bIsBelow=FALSE;
+	cairo_dock_xwindow_is_above_or_below (Xid, &bIsAbove, &bIsBelow);  // gdk_window_get_state bugue.
+	gboolean bIsUtility = cairo_dock_window_is_utility (Xid);
+	gboolean bIsSticky = cairo_dock_xwindow_is_sticky (Xid);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "accessibility");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	CairoDeskletVisibility iVisibility;
+	if (bIsAbove) 						iVisibility = CAIRO_DESKLET_KEEP_ABOVE;
+	else if (bIsBelow) 					iVisibility = CAIRO_DESKLET_KEEP_BELOW;
+	else if (bIsUtility) 				iVisibility = CAIRO_DESKLET_ON_WIDGET_LAYER;
+	else if (pDesklet->bSpaceReserved)  iVisibility = CAIRO_DESKLET_RESERVE_SPACE;
+	else 								iVisibility = CAIRO_DESKLET_NORMAL;
+	gtk_combo_box_set_active (GTK_COMBO_BOX (pOneWidget), iVisibility);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "sticky");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	gtk_toggle_button_set_active  (GTK_TOGGLE_BUTTON (pOneWidget), bIsSticky);
+	
+	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "locked");
+	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
+	gtk_toggle_button_set_active  (GTK_TOGGLE_BUTTON (pOneWidget), pDesklet->bPositionLocked);
+}
+
+static inline gboolean _module_is_opened (CairoDockModuleInstance *pInstance)
+{
+	if (s_pSimpleConfigModuleWindow == NULL || s_cCurrentModuleName == NULL || pInstance == NULL || pInstance->cConfFilePath == NULL)
+		return FALSE;
+	
+	if (strcmp (pInstance->pModule->pVisitCard->cModuleName, s_cCurrentModuleName) != 0)  // est-on est en train d'editer ce module dans le panneau de conf.
+		return FALSE;
+	
+	gchar *cConfFilePath = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "conf-file");
+	g_return_val_if_fail (cConfFilePath != NULL, FALSE);
+	
+	if (strcmp (pInstance->cConfFilePath, cConfFilePath) != 0)
+		return FALSE;  // est-ce cette instance.
+	
+	return TRUE;
+}
+static inline gboolean _desklet_is_opened (CairoDesklet *pDesklet)
+{
+	if (s_pSimpleConfigModuleWindow == NULL || pDesklet == NULL)
+		return FALSE;
+	Icon *pIcon = pDesklet->pIcon;
+	g_return_val_if_fail (pIcon != NULL, FALSE);
+	
+	CairoDockModuleInstance *pModuleInstance = pIcon->pModuleInstance;
+	g_return_val_if_fail (pModuleInstance != NULL, FALSE);
+	
+	return _module_is_opened (pModuleInstance);
+}
+static void update_desklet_params (CairoDesklet *pDesklet)
+{
+	if (! _desklet_is_opened (pDesklet))
+		return ;
+	
+	GSList *pWidgetList = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "widget-list");
+	g_return_if_fail (pWidgetList != NULL);
+	cairo_dock_update_desklet_widgets (pDesklet, pWidgetList);
+}
+
+static void update_desklet_visibility_params (CairoDesklet *pDesklet)
+{
+	if (! _desklet_is_opened (pDesklet))
+		return ;
+	
+	GSList *pWidgetList = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "widget-list");
+	g_return_if_fail (pWidgetList != NULL);
+	cairo_dock_update_desklet_visibility_widgets (pDesklet, pWidgetList);
 }
 
 void cairo_dock_register_simple_gui_backend (void)
 {
-	CairoDockGuiBackend *pBackend = g_new0 (CairoDockGuiBackend, 1);
+	CairoDockMainGuiBackend *pBackend = g_new0 (CairoDockMainGuiBackend, 1);
 	
-	pBackend->show_main_gui 			= NULL;
-	pBackend->show_module_instance_gui 	= show_module_instance_gui;
-	pBackend->show_module_gui 			= show_module_gui;
-	pBackend->set_status_message_on_gui = set_status_message_on_gui;
-	pBackend->module_is_opened 			= module_is_opened;
-	pBackend->deactivate_module_in_gui 	= NULL;
-	pBackend->get_widget_from_name 		= get_widget_from_name;
-	pBackend->close_gui 				= close_gui;
+	//pBackend->show_module_instance_gui 		= show_module_instance_gui;
+	pBackend->update_desklet_params 		= update_desklet_params;
+	pBackend->update_desklet_visibility_params = update_desklet_visibility_params;
 	
-	cairo_dock_register_gui_backend (pBackend);
+	cairo_dock_register_config_gui_backend (pBackend);
+	
+	CairoDockGuiBackend *pConfigBackend = g_new0 (CairoDockGuiBackend, 1);
+	
+	pConfigBackend->set_status_message_on_gui = set_status_message_on_gui;
+	///pConfigBackend->reload_current_widget 	= reload_current_widget;  // TODO
+	pConfigBackend->show_module_instance_gui 	= show_module_instance_gui;
+	pConfigBackend->get_widget_from_name 	= get_widget_from_name;
+	
+	cairo_dock_register_gui_backend (pConfigBackend);
 }

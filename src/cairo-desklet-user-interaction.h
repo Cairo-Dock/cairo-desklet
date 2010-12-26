@@ -17,7 +17,6 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef __CAIRO_DESKLET_USER_INTERACTION__
 #define  __CAIRO_DESKLET_USER_INTERACTION__
 
@@ -26,7 +25,20 @@
 G_BEGIN_DECLS
 
 
-gboolean cairo_dock_notification_click_icon (gpointer pUserData, Icon *icon, CairoDock *pDock, guint iButtonState);
+// Definition of the main GUI interface.
+struct _CairoDockMainGuiBackend {
+	//void (*show_module_instance_gui) (CairoDockModuleInstance *pModuleInstance);
+	void (*update_desklet_params) (CairoDesklet *pDesklet);
+	void (*update_desklet_visibility_params) (CairoDesklet *pDesklet);
+	} ;
+typedef struct _CairoDockMainGuiBackend CairoDockMainGuiBackend;
+
+void cairo_dock_register_config_gui_backend (CairoDockMainGuiBackend *pBackend);
+
+
+gboolean cairo_dock_notification_configure_desklet (gpointer pUserData, CairoDesklet *pDesklet);
+
+void cairo_dock_gui_trigger_update_desklet_visibility (CairoDesklet *pDesklet);
 
 
 G_END_DECLS

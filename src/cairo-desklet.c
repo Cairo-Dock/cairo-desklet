@@ -1,3 +1,21 @@
+/**
+* This file is a part of the Cairo-Dock project
+*
+* Copyright : (C) see the 'copyright' file.
+* E-mail    : see the 'copyright' file.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* as published by the Free Software Foundation; either version 3
+* of the License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <math.h>
 #include <string.h>
@@ -30,7 +48,7 @@ extern CairoDockDesktopEnv g_iDesktopEnv;
 extern gchar *g_cConfFile;  /// en attendant d'avoir le notre...
 extern gchar *g_cCurrentThemePath;
 
-static void _load_internal_module_config (const gchar *cModuleName, GKeyFile *pKeyFile)
+/*static void _load_manager (const gchar *cModuleName, GKeyFile *pKeyFile)
 {
 	CairoDockInternalModule *pInternalModule = cairo_dock_find_internal_module_from_name (cModuleName);
 	gboolean r = FALSE;
@@ -38,274 +56,41 @@ static void _load_internal_module_config (const gchar *cModuleName, GKeyFile *pK
 		r = cairo_dock_get_internal_module_config (pInternalModule, pKeyFile);
 	else
 		cd_warning ("couldn't load %s configuration", cModuleName);
-}
+}*/
 
 static int _print_module_name (CairoDockModule *pModule, gpointer data)
 {
 	if (pModule->pVisitCard->iContainerType & CAIRO_DOCK_MODULE_CAN_DESKLET)
-		g_print ("%s\n", pModule->pVisitCard->cModuleName);
+		g_print (" %s (%s)\n", pModule->pVisitCard->cModuleName, dgettext (pModule->pVisitCard->cGettextDomain, pModule->pVisitCard->cTitle));
 	return 1;
 }
 
-int main (int argc, char** argv)
+static gboolean _start_delayed (gpointer *data)
 {
-	cd_log_init(FALSE);
-	//No log
-	cd_log_set_level(0);
-	
-	gtk_init (&argc, &argv);
-	
+	gboolean bListModules = GPOINTER_TO_INT (data[0]);
+	gchar **cModulesNames = data[1];
+	CairoDockModule *pModule;
 	GError *erreur = NULL;
 	
-	//\___________________ On recupere quelques options.
-	gboolean bSafeMode = FALSE, bMaintenance = FALSE, bNoSticky = FALSE, bNormalHint = FALSE, bCappuccino = FALSE, bPrintVersion = FALSE, bTesting = FALSE, bForceIndirectRendering = FALSE, bForceOpenGL = FALSE, bForceCairo = FALSE, bListModules = FALSE;
-	gchar *cEnvironment = NULL, *cUserDefinedDataDir = NULL, *cVerbosity = 0, *cUserDefinedModuleDir = NULL, *cExcludeModule = NULL, **cModulesNames = NULL, *cThemeServerAdress = NULL;
-	GOptionEntry TableDesOptions[] =
+	//\___________________ activate user modules.
+	if (!bListModules && !cModulesNames)
 	{
-		{"modules", 'm', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING_ARRAY,
-			&cModulesNames,
-			"log verbosity (debug,message,warning,critical,error); default is warning", NULL},
-		{"log", 'l', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
-			&cVerbosity,
-			"log verbosity (debug,message,warning,critical,error); default is warning", NULL},
-		{"cairo", 'c', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
-			&bForceCairo,
-			"use Cairo backend", NULL},
-		{"opengl", 'o', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
-			&bForceOpenGL,
-			"use OpenGL backend", NULL},
-		{"env", 'e', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
-			&cEnvironment,
-			"force the dock to consider this environnement - use it with care.", NULL},
-		{"dir", 'd', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
-			&cUserDefinedDataDir,
-			"force the dock to load from this directory, instead of ~/.config/cairo-dock.", NULL},
-		{"version", 'v', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
-			&bPrintVersion,
-			"print version and quit.", NULL},
-		{"server", 'S', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
-			&cThemeServerAdress,
-			"list all the available modules.", NULL},
-		{"List", 'L', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
-			&bListModules,
-			"list of available applets.", NULL},
-		{NULL}
-	};
-
-	GOptionContext *context = g_option_context_new ("Cairo-Dock");
-	g_option_context_add_main_entries (context, TableDesOptions, NULL);
-	g_option_context_parse (context, &argc, &argv, &erreur);
-	if (erreur != NULL)
-	{
-		g_print ("ERROR in options : %s\n", erreur->message);
+		g_print ("You must specify at least 1 module to load\nAvailable modules are:\n");
+		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
 		return 1;
 	}
-	
-	if (bPrintVersion)
+	else if (bListModules)
 	{
-		g_print ("%s\n", CAIRO_DESKLET_VERSION);
+		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
 		return 0;
 	}
 	
-	if (cModulesNames == NULL && !bListModules)
-	{
-		g_print ("You must specify at least 1 module to load\n");
-		/// affcher la liste des modules ...
-		exit (1);
-	}
-	
-	cd_log_set_level_from_name (cVerbosity);
-	g_free (cVerbosity);
-	
-	CairoDockDesktopEnv iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
-	if (cEnvironment != NULL)
-	{
-		if (strcmp (cEnvironment, "gnome") == 0)
-			iDesktopEnv = CAIRO_DOCK_GNOME;
-		else if (strcmp (cEnvironment, "kde") == 0)
-			iDesktopEnv = CAIRO_DOCK_KDE;
-		else if (strcmp (cEnvironment, "xfce") == 0)
-			iDesktopEnv = CAIRO_DOCK_XFCE;
-		else if (strcmp (cEnvironment, "none") == 0)
-			iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
-		else
-			cd_warning ("unknown environnment '%s'", cEnvironment);
-		g_free (cEnvironment);
-	}
-	
-	//\___________________ On internationalise l'appli.
-	bindtextdomain (CAIRO_DESKLET_GETTEXT_PACKAGE, CAIRO_DESKLET_LOCALE_DIR);
-	bind_textdomain_codeset (CAIRO_DESKLET_GETTEXT_PACKAGE, "UTF-8");
-	textdomain (CAIRO_DESKLET_GETTEXT_PACKAGE);
-
-	//\___________________ On definit les repertoires des donnees.
-	gchar *cRootDataDirPath;
-	if (cUserDefinedDataDir != NULL)
-	{
-		cRootDataDirPath = cUserDefinedDataDir;
-		cUserDefinedDataDir = NULL;
-	}
-	else
-	{
-		cRootDataDirPath = g_strdup_printf ("%s/.config/%s", getenv("HOME"), CAIRO_DESKLET_DATA_DIR);
-	}
-	gboolean bFirstLaunch = ! g_file_test (cRootDataDirPath, G_FILE_TEST_IS_DIR);
-	
-	gchar *cExtraDirPath = g_strconcat (cRootDataDirPath, "/"CAIRO_DOCK_EXTRAS_DIR, NULL);
-	gchar *cThemesDirPath = g_strconcat (cRootDataDirPath, "/"CAIRO_DOCK_THEMES_DIR, NULL);
-	gchar *cCurrentThemeDirPath = g_strconcat (cRootDataDirPath, "/"CAIRO_DOCK_CURRENT_THEME_NAME, NULL);
-	cairo_dock_set_paths (cRootDataDirPath, cExtraDirPath, cThemesDirPath, cCurrentThemeDirPath, cThemeServerAdress ? cThemeServerAdress : g_strdup (CAIRO_DOCK_THEME_SERVER));
-	
-	  /////////////
-	 //// LIB ////
-	/////////////
-
-	//\___________________ On initialise le gestionnaire de docks (a faire en 1er).
-	cairo_dock_init_dock_manager ();
-	
-	//\___________________ On initialise le gestionnaire de desklets.
-	cairo_dock_init_desklet_manager ();
-	
-	//\___________________ On initialise le gestionnaire de dialogues.
-	cairo_dock_init_dialog_manager ();
-	
-	//\___________________ On initialise le gestionnaire de backends (vues, etc).
-	cairo_dock_init_backends_manager ();
-	
-	//\___________________ On initialise le gestionnaire des indicateurs.
-	cairo_dock_init_indicator_manager ();
-	
-	//\___________________ On initialise le multi-threading.
-	if (!g_thread_supported ())
-		g_thread_init (NULL);
-	
-	//\___________________ On demarre le support de X.
-	cairo_dock_start_X_manager ();
-	
-	//\___________________ On initialise le keybinder.
-	cd_keybinder_init();
-	
-	//\___________________ On detecte l'environnement de bureau (apres X et avant les modules).
-	cairo_dock_init_desktop_environment_manager (iDesktopEnv);
-	
-	//\___________________ On enregistre les implementations.
-	cairo_dock_register_built_in_data_renderers ();
-	
-	///cairo_dock_register_hiding_effects ();
-	///g_pKeepingBelowBackend = cairo_dock_get_hiding_effect ("Fade out");
-	
-	///cairo_dock_register_icon_container_renderers ();
-	
-	//\___________________ On enregistre les notifications de base.
-	cairo_dock_register_notification (CAIRO_DOCK_RENDER_ICON,
-		(CairoDockNotificationFunc) cairo_dock_render_icon_notification,
-		CAIRO_DOCK_RUN_FIRST, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_INSERT_ICON,
-		(CairoDockNotificationFunc) cairo_dock_on_insert_remove_icon_notification,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_REMOVE_ICON,
-		(CairoDockNotificationFunc) cairo_dock_on_insert_remove_icon_notification,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_UPDATE_ICON,
-		(CairoDockNotificationFunc) cairo_dock_update_inserting_removing_icon_notification,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_STOP_ICON,
-		(CairoDockNotificationFunc) cairo_dock_stop_inserting_removing_icon_notification,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_UPDATE_FLYING_CONTAINER,
-		(CairoDockNotificationFunc) cairo_dock_update_flying_container_notification,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_RENDER_FLYING_CONTAINER,
-		(CairoDockNotificationFunc) cairo_dock_render_flying_container_notification,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	
-	  /////////////
-	 //// APP ////
-	/////////////
-	
-	if (bForceOpenGL || ! bForceCairo)
-		cairo_dock_initialize_opengl_backend (FALSE, bForceOpenGL);
-	
-	g_print ("\n ============================================================================ \n\tCairo-Desklet version: %s\n\tCompiled date:  %s %s\n\tRunning with OpenGL: %d\n ============================================================================\n\n",
-		CAIRO_DESKLET_VERSION,
-		__DATE__, __TIME__,
-		g_bUseOpenGL);
-	
-	//\___________________ On initialise le gestionnaire de modules et on pre-charge les modules existant (il faut le faire apres savoir si on utilise l'OpenGL).
-	if (g_module_supported ())
-	{
-		cairo_dock_initialize_module_manager (cairo_dock_get_modules_dir ());
-	}
-	else
-		cairo_dock_initialize_module_manager (NULL);
-	
-	if (bListModules)
-	{
-		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
-		if (cModulesNames == NULL)
-			exit (1);
-	}
-	
-	//\___________________ On definit le backend des GUI.
-	///cairo_dock_load_user_gui_backend ();
-	///cairo_dock_register_default_launcher_gui_backend ();
-	cairo_dock_register_simple_gui_backend ();
-	
-	//\___________________ On enregistre la vue par defaut.
-	///cairo_dock_register_default_renderer ();
-	
-	//\___________________ On enregistre nos notifications.
-	cairo_dock_register_notification (CAIRO_DOCK_CLICK_ICON,
-		(CairoDockNotificationFunc) cairo_dock_notification_click_icon,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_BUILD_CONTAINER_MENU,
-		(CairoDockNotificationFunc) cairo_dock_notification_build_container_menu,
-		CAIRO_DOCK_RUN_FIRST, NULL);
-	cairo_dock_register_notification (CAIRO_DOCK_BUILD_ICON_MENU,
-		(CairoDockNotificationFunc) cairo_dock_notification_build_icon_menu,
-		CAIRO_DOCK_RUN_AFTER, NULL);
-	
-	//\___________________ On recupere la config des modules internes.
-	if (! g_file_test (g_cConfFile, G_FILE_TEST_EXISTS))
-	{
-		gchar *cCommand = g_strdup_printf ("/bin/cp \"%s\" \"%s\"", CAIRO_DESKLET_SHARE_DATA_DIR"/cairo-desklet.conf", g_cConfFile);
-		cd_message (cCommand);
-		int r = system (cCommand);
-		g_free (cCommand);
-	}
-	
-	GKeyFile *pKeyFile = cairo_dock_open_key_file (g_cConfFile);
-	if (pKeyFile != NULL)
-	{
-		_load_internal_module_config ("Desklets", pKeyFile);
-		
-		_load_internal_module_config ("Dialogs", pKeyFile);
-		
-		_load_internal_module_config ("Labels", pKeyFile);
-		
-		_load_internal_module_config ("System", pKeyFile);
-		
-		_load_internal_module_config ("Icons", pKeyFile);
-		
-		g_key_file_free (pKeyFile);
-	}
-	
-	//\___________________ On active les modules necessaires.
-	CairoDockModule *pModule;
-	pModule = cairo_dock_find_module_from_name ("desklet rendering");
-	if (pModule)
-		cairo_dock_activate_module (pModule, NULL);
-	pModule = cairo_dock_find_module_from_name ("dialog rendering");
-	if (pModule)
-		cairo_dock_activate_module (pModule, NULL);
-	pModule = cairo_dock_find_module_from_name ("Dbus");
-	if (pModule)
-		cairo_dock_activate_module (pModule, NULL);
-	
-	//\___________________ On active les modules utilisateurs.
+	g_print ("*** %s\n", cModulesNames[0]);
+	g_print ("*** %s\n", cModulesNames[1]);
 	int i;
 	for (i = 0; cModulesNames[i] != NULL; i ++)
 	{
+		g_print ("+++ %s\n", cModulesNames[i]);
 		pModule = cairo_dock_find_module_from_name (cModulesNames[i]);
 		if (! pModule)
 		{
@@ -336,10 +121,196 @@ int main (int argc, char** argv)
 			}
 		}*/
 	}
+	return FALSE;
+}
+
+int main (int argc, char** argv)
+{
+	gtk_init (&argc, &argv);
+	
+	GError *erreur = NULL;
+	
+	//\___________________ get app's options.
+	gboolean bPrintVersion = FALSE, bForceOpenGL = FALSE, bForceCairo = FALSE, bListModules = FALSE;
+	gchar *cEnvironment = NULL, *cUserDefinedDataDir = NULL, *cVerbosity = 0, **cModulesNames = NULL, *cThemeServerAdress = NULL;
+	GOptionEntry TableDesOptions[] =
+	{
+		{"modules", 'm', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING_ARRAY,
+			&cModulesNames,
+			"modules to activate", NULL},
+		{"log", 'l', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
+			&cVerbosity,
+			"log verbosity (debug,message,warning,critical,error); default is warning", NULL},
+		{"cairo", 'c', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
+			&bForceCairo,
+			"use Cairo backend", NULL},
+		{"opengl", 'o', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
+			&bForceOpenGL,
+			"use OpenGL backend", NULL},
+		{"env", 'e', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
+			&cEnvironment,
+			"force the dock to consider this environnement - use it with care.", NULL},
+		{"dir", 'd', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
+			&cUserDefinedDataDir,
+			"force the dock to load from this directory, instead of ~/.config/cairo-dock.", NULL},
+		{"version", 'v', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
+			&bPrintVersion,
+			"print version and quit.", NULL},
+		{"server", 'S', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
+			&cThemeServerAdress,
+			"list all the available modules.", NULL},
+		{"List", 'L', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
+			&bListModules,
+			"list available applets.", NULL},
+		{NULL, 0, 0, 0,
+			NULL,
+			NULL, NULL}
+	};
+
+	GOptionContext *context = g_option_context_new ("Cairo-Dock");
+	g_option_context_add_main_entries (context, TableDesOptions, NULL);
+	g_option_context_parse (context, &argc, &argv, &erreur);
+	if (erreur != NULL)
+	{
+		g_print ("ERROR in options : %s\n", erreur->message);
+		return 2;
+	}
+	
+	if (bPrintVersion)
+	{
+		g_print ("%s\n", CAIRO_DESKLET_VERSION);
+		return 0;
+	}
+	
+	if (cVerbosity != NULL)
+	{
+		cd_log_set_level_from_name (cVerbosity);
+		g_free (cVerbosity);
+	}
+	
+	CairoDockDesktopEnv iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
+	if (cEnvironment != NULL)
+	{
+		if (strcmp (cEnvironment, "gnome") == 0)
+			iDesktopEnv = CAIRO_DOCK_GNOME;
+		else if (strcmp (cEnvironment, "kde") == 0)
+			iDesktopEnv = CAIRO_DOCK_KDE;
+		else if (strcmp (cEnvironment, "xfce") == 0)
+			iDesktopEnv = CAIRO_DOCK_XFCE;
+		else if (strcmp (cEnvironment, "none") == 0)
+			iDesktopEnv = CAIRO_DOCK_UNKNOWN_ENV;
+		else
+			cd_warning ("unknown environnment '%s'", cEnvironment);
+		g_free (cEnvironment);
+	}
+	
+	gchar *cRootDataDirPath;
+	if (cUserDefinedDataDir != NULL)
+	{
+		cRootDataDirPath = cUserDefinedDataDir;
+		cUserDefinedDataDir = NULL;
+	}
+	else
+	{
+		cRootDataDirPath = g_strdup_printf ("%s/.config/%s", getenv("HOME"), CAIRO_DESKLET_DATA_DIR);
+	}
+	
+	//\___________________ internationalize the app.
+	bindtextdomain (CAIRO_DESKLET_GETTEXT_PACKAGE, CAIRO_DESKLET_LOCALE_DIR);
+	bind_textdomain_codeset (CAIRO_DESKLET_GETTEXT_PACKAGE, "UTF-8");
+	textdomain (CAIRO_DESKLET_GETTEXT_PACKAGE);
+	
+	//\___________________ initialize libgldi.
+	GldiRenderingMethod iRendering = (bForceOpenGL ? GLDI_OPENGL : bForceCairo ? GLDI_CAIRO : GLDI_DEFAULT);
+	gldi_init (iRendering);
+	
+	//\___________________ set custom user options.
+	if (iDesktopEnv != CAIRO_DOCK_UNKNOWN_ENV)
+		cairo_dock_fm_force_desktop_env (iDesktopEnv);
+	
+	gchar *cExtraDirPath = g_strconcat (cRootDataDirPath, "/"CAIRO_DOCK_EXTRAS_DIR, NULL);
+	gchar *cThemesDirPath = g_strconcat (cRootDataDirPath, "/"CAIRO_DOCK_THEMES_DIR, NULL);
+	gchar *cCurrentThemeDirPath = g_strconcat (cRootDataDirPath, "/"CAIRO_DOCK_CURRENT_THEME_NAME, NULL);
+	cairo_dock_set_paths (cRootDataDirPath, cExtraDirPath, cThemesDirPath, cCurrentThemeDirPath, NULL, NULL, cThemeServerAdress ? cThemeServerAdress : g_strdup (CAIRO_DOCK_THEME_SERVER));
+	
+	g_print ("\n ============================================================================ \n\tCairo-Desklet version: %s\n\tCompiled date:  %s %s\n\tRunning with OpenGL: %d\n ============================================================================\n\n",
+		CAIRO_DESKLET_VERSION,
+		__DATE__, __TIME__,
+		g_bUseOpenGL);
+	
+	//\___________________ now load modules.
+	cairo_dock_load_modules_in_directory (NULL, &erreur);  // NULL <=> default directory
+	if (erreur != NULL)
+	{
+		cd_error ("%s\n  no module available", erreur->message);
+		return 1;
+	}
+	
+	//\___________________ define GUI backend.
+	cairo_dock_register_simple_gui_backend ();
+	
+	//\___________________ register to the useful notifications.
+	cairo_dock_register_notification_on_object (&myContainersMgr,
+		NOTIFICATION_BUILD_CONTAINER_MENU,
+		(CairoDockNotificationFunc) cairo_dock_notification_build_container_menu,
+		CAIRO_DOCK_RUN_FIRST, NULL);
+	cairo_dock_register_notification_on_object (&myContainersMgr,
+		NOTIFICATION_BUILD_ICON_MENU,
+		(CairoDockNotificationFunc) cairo_dock_notification_build_icon_menu,
+		CAIRO_DOCK_RUN_AFTER, NULL);
+	
+	cairo_dock_register_notification_on_object (&myDeskletsMgr,
+		NOTIFICATION_CONFIGURE_DESKLET,
+		(CairoDockNotificationFunc) cairo_dock_notification_configure_desklet,
+		CAIRO_DOCK_RUN_AFTER, NULL);
+	
+	//\___________________ set a default config if none.
+	if (! g_file_test (g_cConfFile, G_FILE_TEST_EXISTS))
+	{
+		
+		gchar *cCommand = g_strdup_printf ("/bin/cp \"%s\" \"%s\"", CAIRO_DESKLET_SHARE_DATA_DIR"/cairo-desklet.conf", g_cConfFile);
+		cd_message (cCommand);
+		int r = system (cCommand);
+		g_free (cCommand);
+	}
+	
+	//\___________________ initiate a primary container to make a context.
+	CairoContainer *pInvisible = g_new0 (CairoContainer, 1);
+	cairo_dock_init_container (pInvisible);
+	gtk_widget_show (pInvisible->pWidget);
+	gtk_widget_hide (pInvisible->pWidget);
+	
+	//\___________________ load managers.
+	/*_load_manager ("Desklets", pKeyFile);
+	_load_manager ("Dialogs", pKeyFile);
+	_load_manager ("Labels", pKeyFile);
+	_load_manager ("System", pKeyFile);
+	_load_manager ("Icons", pKeyFile);*/
+	gldi_get_managers_config (g_cConfFile, GLDI_VERSION);  /// en fait, CAIRO_DESKLET_VERSION ...
+	
+	gldi_load_managers ();
+	
+	//\___________________ Start the applications manager.
+	cairo_dock_start_applications_manager (g_pMainDock);
+	
+	//\___________________ activate base modules.
+	CairoDockModule *pModule;
+	pModule = cairo_dock_find_module_from_name ("desklet rendering");
+	if (pModule)
+		cairo_dock_activate_module (pModule, NULL);
+	pModule = cairo_dock_find_module_from_name ("dialog rendering");
+	if (pModule)
+		cairo_dock_activate_module (pModule, NULL);
+	pModule = cairo_dock_find_module_from_name ("Dbus");
+	if (pModule)
+		cairo_dock_activate_module (pModule, NULL);
+	
+	gpointer data[2] = {GINT_TO_POINTER (bListModules), cModulesNames};
+	g_idle_add ((GSourceFunc) _start_delayed, data);
 	
 	gtk_main ();
 	
-	cairo_dock_free_all ();
+	gldi_free_all ();
 	
 	rsvg_term ();
 	xmlCleanupParser ();
