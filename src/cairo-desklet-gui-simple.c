@@ -252,13 +252,13 @@ static gboolean _test_one_module_name (GtkTreeModel *model, GtkTreePath *path, G
 	return FALSE;
 }
 
-static CairoDockGroupKeyWidget *get_widget_from_name (const gchar *cGroupName, const gchar *cKeyName)
+static CairoDockGroupKeyWidget *get_widget_from_name (CairoDockModuleInstance *pInstance, const gchar *cGroupName, const gchar *cKeyName)
 {
 	g_return_val_if_fail (s_pSimpleConfigModuleWindow != NULL, NULL);
 	return cairo_dock_gui_find_group_key_widget (s_pSimpleConfigModuleWindow, cGroupName, cKeyName);
 }
 
-static void reload_current_widget (int iShowPage)
+static void reload_current_widget (CairoDockModuleInstance *pInstance, int iShowPage)
 {
 	g_return_if_fail (s_pSimpleConfigModuleWindow != NULL && s_cCurrentModuleName != NULL);
 	
@@ -418,17 +418,17 @@ void cairo_dock_register_simple_gui_backend (void)
 	CairoDockMainGuiBackend *pBackend = g_new0 (CairoDockMainGuiBackend, 1);
 	
 	//pBackend->show_module_instance_gui 		= show_module_instance_gui;
-	pBackend->update_desklet_params 		= update_desklet_params;
-	pBackend->update_desklet_visibility_params = update_desklet_visibility_params;
+	pBackend->update_desklet_params 			= update_desklet_params;
+	pBackend->update_desklet_visibility_params 	= update_desklet_visibility_params;
 	
 	cairo_dock_register_config_gui_backend (pBackend);
 	
 	CairoDockGuiBackend *pConfigBackend = g_new0 (CairoDockGuiBackend, 1);
 	
-	pConfigBackend->set_status_message_on_gui = set_status_message_on_gui;
-	///pConfigBackend->reload_current_widget 	= reload_current_widget;  // TODO
+	pConfigBackend->set_status_message_on_gui 	= set_status_message_on_gui;
+	pConfigBackend->reload_current_widget 	= reload_current_widget;
 	pConfigBackend->show_module_instance_gui 	= show_module_instance_gui;
-	pConfigBackend->get_widget_from_name 	= get_widget_from_name;
+	pConfigBackend->get_widget_from_name 		= get_widget_from_name;
 	
 	cairo_dock_register_gui_backend (pConfigBackend);
 }
