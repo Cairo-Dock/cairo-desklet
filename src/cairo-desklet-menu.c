@@ -79,7 +79,7 @@ static void _cairo_dock_about (GtkMenuItem *pMenuItem, CairoContainer *pContaine
 		GTK_DIALOG_DESTROY_WITH_PARENT,
 		/*GTK_MESSAGE_INFO*/GTK_MESSAGE_OTHER,
 		GTK_BUTTONS_CLOSE,
-		NULL/*"\nCairo-Dock (2007-2010)\n version "CAIRO_DESKLET_VERSION*/);
+		NULL/*"\nCairo-Dock (2007-2011)\n version "CAIRO_DESKLET_VERSION*/);
 	
 #if (GTK_MAJOR_VERSION > 2 || GTK_MINOR_VERSION >= 14)
 	GtkWidget *pContentBox = gtk_dialog_get_content_area (GTK_DIALOG(pDialog));
@@ -96,7 +96,7 @@ static void _cairo_dock_about (GtkMenuItem *pMenuItem, CairoContainer *pContaine
 	GtkWidget *pVBox = gtk_vbox_new (FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (pHBox), pVBox, FALSE, FALSE, 0);
 	
-	GtkWidget *pLink = gtk_link_button_new_with_label (CAIRO_DOCK_SITE_URL, "Cairo-Dock (2007-2010)\n version "CAIRO_DESKLET_VERSION);
+	GtkWidget *pLink = gtk_link_button_new_with_label (CAIRO_DOCK_SITE_URL, "Cairo-Dock (2007-2011)\n version "CAIRO_DESKLET_VERSION);
 	gtk_box_pack_start (GTK_BOX (pVBox), pLink, FALSE, FALSE, 0);
 	
 	pLink = gtk_link_button_new_with_label (CAIRO_DOCK_FORUM_URL, _("Community site"));
