@@ -565,7 +565,7 @@ gboolean cairo_dock_notification_build_icon_menu (gpointer *pUserData, Icon *ico
 	gboolean bIsUtility = cairo_dock_window_is_utility (Xid);  // gtk_window_get_type_hint me renvoie toujours 0 !
 	gboolean bIsDock = (/*cairo_dock_window_is_dock (Xid) || */CAIRO_DESKLET (pContainer)->bSpaceReserved);
 	gboolean bIsNormal = (!bIsAbove && !bIsBelow && !bIsUtility && !bIsDock);
-	gboolean bIsSticky = /*(cairo_dock_get_xwindow_desktop (Xid) == -1) || */cairo_dock_xwindow_is_sticky (Xid);
+	gboolean bIsSticky = /*(cairo_dock_get_xwindow_desktop (Xid) == -1) || cairo_dock_xwindow_is_sticky (Xid);*/ cairo_dock_desklet_is_sticky (CAIRO_DESKLET (pContainer));
 	
 	pMenuItem = gtk_radio_menu_item_new_with_label(group, _("Normal"));
 	group = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(pMenuItem));

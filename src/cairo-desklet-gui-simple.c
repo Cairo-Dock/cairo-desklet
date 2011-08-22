@@ -341,7 +341,7 @@ static void cairo_dock_update_desklet_visibility_widgets (CairoDesklet *pDesklet
 	gboolean bIsAbove=FALSE, bIsBelow=FALSE;
 	cairo_dock_xwindow_is_above_or_below (Xid, &bIsAbove, &bIsBelow);  // gdk_window_get_state bugue.
 	gboolean bIsUtility = cairo_dock_window_is_utility (Xid);
-	gboolean bIsSticky = cairo_dock_xwindow_is_sticky (Xid);
+	gboolean bIsSticky =  cairo_dock_desklet_is_sticky (pDesklet);
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "accessibility");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
