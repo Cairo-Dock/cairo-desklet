@@ -195,20 +195,20 @@ gboolean cairo_dock_notification_build_container_menu (gpointer *pUserData, Icon
 	
 	pMenuItem = cairo_dock_add_in_menu_with_stock_and_data (_("Get more applets!"),
 		GTK_STOCK_ADD,
-		(GFunc)_cairo_dock_show_third_party_applets,
+		(GCallback)_cairo_dock_show_third_party_applets,
 		pSubMenu,
 		NULL);
 	gtk_widget_set_tooltip_text (pMenuItem, _("Third-party applets provide integration with many programs, like Pidgin"));
 	
 	cairo_dock_add_in_menu_with_stock_and_data (_("About"),
 		GTK_STOCK_ABOUT,
-		(GFunc)_cairo_dock_about,
+		(GCallback)_cairo_dock_about,
 		pSubMenu,
 		pContainer);
 	
 	cairo_dock_add_in_menu_with_stock_and_data (_("Quit"),
 		GTK_STOCK_QUIT,
-		(GFunc)_cairo_dock_quit,
+		(GCallback)_cairo_dock_quit,
 		pSubMenu,
 		pContainer);
 }
@@ -218,7 +218,7 @@ gboolean cairo_dock_notification_build_container_menu (gpointer *pUserData, Icon
  /////////// LES OPERATIONS SUR LES LANCEURS ///////////////////////
 ///////////////////////////////////////////////////////////////////
 
-#define _add_entry_in_menu(cLabel, gtkStock, pCallBack, pSubMenu) cairo_dock_add_in_menu_with_stock_and_data (cLabel, gtkStock, (GFunc) (pCallBack), pSubMenu, data)
+#define _add_entry_in_menu(cLabel, gtkStock, pCallBack, pSubMenu) cairo_dock_add_in_menu_with_stock_and_data (cLabel, gtkStock, (GCallback) (pCallBack), pSubMenu, data)
 
   //////////////////////////////////////////////////////////////////
  /////////// LES OPERATIONS SUR LES APPLETS ///////////////////////
@@ -461,7 +461,7 @@ static void _add_desktops_entry (GtkWidget *pMenu, gpointer data)
 					user_data[2] = GINT_TO_POINTER (j);
 					user_data[3] = GINT_TO_POINTER (k);
 					
-					cairo_dock_add_in_menu_with_stock_and_data (sDesktop->str, NULL, (GFunc)(_cairo_dock_move_appli_to_desktop), pMenu, user_data);
+					cairo_dock_add_in_menu_with_stock_and_data (sDesktop->str, NULL, (GCallback)(_cairo_dock_move_appli_to_desktop), pMenu, user_data);
 				}
 			}
 		}

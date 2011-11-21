@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
+#include <gdk/gdkx.h> // GDK_WINDOW_XID
 
 #include "config.h"
 #include <cairo-dock.h>
