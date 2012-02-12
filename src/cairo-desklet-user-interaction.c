@@ -87,7 +87,7 @@ static void cairo_dock_gui_trigger_update_desklet_params (CairoDesklet *pDesklet
 			NULL);
 		s_DeskletToUpdate = pDesklet;
 		cairo_dock_register_notification_on_object (pDesklet,
-			NOTIFICATION_STOP_DESKLET,
+			NOTIFICATION_STOP_DESKLET_DEPRECATED,
 			(CairoDockNotificationFunc) _on_stop_desklet,
 			CAIRO_DOCK_RUN_AFTER, NULL);
 	}
@@ -133,7 +133,7 @@ void cairo_dock_gui_trigger_update_desklet_visibility (CairoDesklet *pDesklet)
 			NULL);
 		s_DeskletToUpdate = pDesklet;
 		cairo_dock_register_notification_on_object (pDesklet,
-			NOTIFICATION_STOP_DESKLET,
+			NOTIFICATION_STOP_DESKLET_DEPRECATED,
 			(CairoDockNotificationFunc) _on_stop_desklet,
 			CAIRO_DOCK_RUN_AFTER, NULL);
 	}
