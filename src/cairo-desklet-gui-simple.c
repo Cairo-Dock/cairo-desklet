@@ -40,6 +40,8 @@
 #define ICON_SMALL 42
 #define ICON_TINY 36
 
+#define CAIRO_DOCK_ICON "cairo-dock.svg"
+
 static GtkWidget *s_pSimpleConfigModuleWindow = NULL;
 static const  gchar *s_cCurrentModuleName = NULL;
 
@@ -91,7 +93,7 @@ static inline GtkWidget * _present_module_widget (GtkWidget *pWindow, CairoDockM
 	s_cCurrentModuleName = pInstance->pModule->pVisitCard->cModuleName;
 	
 	if (pInstance->pModule->pInterface->load_custom_widget != NULL)
-		pInstance->pModule->pInterface->load_custom_widget (pInstance, pKeyFile);
+		pInstance->pModule->pInterface->load_custom_widget (pInstance, pKeyFile, pWidgetList);
 	
 	g_key_file_free (pKeyFile);
 	
@@ -104,6 +106,235 @@ static inline GtkWidget * _present_module_widget (GtkWidget *pWindow, CairoDockM
 		0);
 	
 	return pNoteBook;
+}
+
+void cairo_dock_reload_generic_gui (GtkWidget *pWindow)
+{
+	//g_print ("%s ()", __func__);
+	GSList *pWidgetList = g_object_get_data (G_OBJECT (pWindow), "widget-list");
+	cairo_dock_free_generated_widget_list (pWidgetList);
+	pWidgetList = NULL;
+	g_object_set_data (G_OBJECT (pWindow), "widget-list", NULL);
+	
+	GPtrArray *pDataGarbage = g_object_get_data (G_OBJECT (pWindow), "garbage");
+	/// nettoyer...
+	g_object_set_data (G_OBJECT (pWindow), "garbage", NULL);
+	
+	GtkWidget *pMainVBox = gtk_bin_get_child (GTK_BIN (pWindow));
+	GList *children = gtk_container_get_children (GTK_CONTAINER (pMainVBox));
+	g_return_if_fail (children != NULL);
+	GtkWidget *pNoteBook = children->data;
+	g_list_free (children);
+	gtk_widget_destroy (pNoteBook);
+	
+	gchar *cConfFilePath = g_object_get_data (G_OBJECT (pWindow), "conf-file");
+	GKeyFile* pKeyFile = cairo_dock_open_key_file (cConfFilePath);
+	if (pKeyFile != NULL)
+	{
+		pNoteBook = cairo_dock_build_key_file_widget (pKeyFile,
+			NULL,
+			pWindow,
+			&pWidgetList,
+			pDataGarbage,
+			NULL);
+	}
+	
+	g_object_set_data (G_OBJECT (pWindow), "widget-list", pWidgetList);
+	g_object_set_data (G_OBJECT (pWindow), "garbage", pDataGarbage);
+	
+	gtk_box_pack_start (GTK_BOX (pMainVBox),
+		pNoteBook,
+		TRUE,
+		TRUE,
+		0);
+	
+	CairoDockLoadCustomWidgetFunc load_custom_widgets = g_object_get_data (G_OBJECT (pWindow), "load-widget");
+	if (load_custom_widgets)  // a faire apres avoir mis "widget-list".
+		load_custom_widgets (pWindow, pKeyFile, pWidgetList);
+	
+	g_key_file_free (pKeyFile);
+	
+	gtk_widget_show_all (pNoteBook);
+}
+
+static gboolean on_delete_generic_gui (GtkWidget *pWidget, GdkEvent *event, GMainLoop *pBlockingLoop)
+{
+	cd_debug ("%s ()\n", __func__);
+	if (pBlockingLoop != NULL && g_main_loop_is_running (pBlockingLoop))
+	{
+		g_main_loop_quit (pBlockingLoop);
+	}
+	
+	gpointer pUserData = g_object_get_data (G_OBJECT (pWidget), "action-data");
+	GFreeFunc pFreeUserData = g_object_get_data (G_OBJECT (pWidget), "free-data");
+	if (pFreeUserData != NULL)
+		pFreeUserData (pUserData);
+	
+	GSList *pWidgetList = g_object_get_data (G_OBJECT (pWidget), "widget-list");
+	cairo_dock_free_generated_widget_list (pWidgetList);
+	
+	GPtrArray *pDataGarbage = g_object_get_data (G_OBJECT (pWidget), "garbage");
+	/// nettoyer.
+	
+	gchar *cConfFilePath = g_object_get_data (G_OBJECT (pWidget), "conf-file");
+	g_free (cConfFilePath);
+	
+	return (pBlockingLoop != NULL);  // TRUE <=> ne pas detruire la fenetre.
+}
+
+static void on_click_generic_apply (GtkButton *button, GtkWidget *pWindow)
+{
+	//g_print ("%s ()\n", __func__);
+	GSList *pWidgetList = g_object_get_data (G_OBJECT (pWindow), "widget-list");
+	gchar *cConfFilePath = g_object_get_data (G_OBJECT (pWindow), "conf-file");
+	GKeyFile *pKeyFile = cairo_dock_open_key_file (cConfFilePath);
+	g_return_if_fail (pKeyFile != NULL);
+	
+	gchar *cConfModuleName = g_object_get_data (G_OBJECT (pWindow), "module");
+	if (cConfModuleName != NULL)
+	{
+		CairoDockModule *pModule = cairo_dock_find_module_from_name (cConfModuleName);
+		if (pModule != NULL)
+		{
+			CairoDockModuleInstance *pModuleInstance;
+			GList *i;
+			for (i = pModule->pInstancesList; i != NULL; i = i->next)
+			{
+				pModuleInstance = i->data;
+				if (strcmp (cConfFilePath, pModuleInstance->cConfFilePath) == 0)
+					break;
+			}
+			if (i != NULL)
+			{
+				if (pModule->pInterface->save_custom_widget != NULL)
+					pModule->pInterface->save_custom_widget (pModuleInstance, pKeyFile, pWidgetList);
+			}
+		}
+	}
+	else
+	{
+		CairoDockSaveCustomWidgetFunc save_custom_widgets = g_object_get_data (G_OBJECT (pWindow), "save-widget");
+		if (save_custom_widgets)
+			save_custom_widgets (pWindow, pKeyFile, pWidgetList);
+	}
+	
+	cairo_dock_update_keyfile_from_widget_list (pKeyFile, pWidgetList);
+	cairo_dock_write_keys_to_file (pKeyFile, cConfFilePath);
+	g_key_file_free (pKeyFile);
+	
+	CairoDockApplyConfigFunc pAction = g_object_get_data (G_OBJECT (pWindow), "action");
+	gpointer pUserData = g_object_get_data (G_OBJECT (pWindow), "action-data");
+	
+	if (pAction != NULL)
+	{
+		gboolean bKeepWindow = pAction (pUserData);
+		if (!bKeepWindow)  // on recharge la fenetre.
+		{
+			cairo_dock_reload_generic_gui (pWindow);
+		}
+	}
+	else
+		g_object_set_data (G_OBJECT (pWindow), "result", GINT_TO_POINTER (1));
+}
+
+static void on_click_generic_quit (GtkButton *button, GtkWidget *pWindow)
+{
+	cd_debug ("%s ()\n", __func__);
+	GMainLoop *pBlockingLoop = g_object_get_data (G_OBJECT (pWindow), "loop");
+	
+	gboolean bReturn;
+	g_signal_emit_by_name (pWindow, "delete-event", NULL, &bReturn);
+	///on_delete_generic_gui (pWindow, NULL, pBlockingLoop);
+	
+	if (pBlockingLoop == NULL)
+		gtk_widget_destroy (pWindow);
+}
+
+static void on_click_generic_ok (GtkButton *button, GtkWidget *pWindow)
+{
+	//g_print ("%s ()\n", __func__);
+	
+	on_click_generic_apply (button, pWindow);
+	on_click_generic_quit (button, pWindow);
+}
+
+GtkWidget *cairo_dock_build_generic_gui_window (const gchar *cTitle, int iWidth, int iHeight, CairoDockApplyConfigFunc pAction, gpointer pUserData, GFreeFunc pFreeUserData)
+{
+	//\_____________ On construit la fenetre.
+	GtkWidget *pMainWindow = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_icon_from_file (GTK_WINDOW (pMainWindow), GLDI_SHARE_DATA_DIR"/"CAIRO_DOCK_ICON, NULL);
+	if (cTitle != NULL)
+		gtk_window_set_title (GTK_WINDOW (pMainWindow), cTitle);
+
+	GtkWidget *pMainVBox = _gtk_vbox_new (CAIRO_DOCK_FRAME_MARGIN);
+	gtk_container_add (GTK_CONTAINER (pMainWindow), pMainVBox);
+	
+	//\_____________ On ajoute les boutons.
+	GtkWidget *pButtonsHBox = _gtk_hbox_new (CAIRO_DOCK_FRAME_MARGIN*2);
+	gtk_box_pack_end (GTK_BOX (pMainVBox),
+		pButtonsHBox,
+		FALSE,
+		FALSE,
+		0);
+	
+	GtkWidget *pQuitButton = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
+	g_signal_connect (G_OBJECT (pQuitButton), "clicked", G_CALLBACK(on_click_generic_quit), pMainWindow);
+	gtk_box_pack_end (GTK_BOX (pButtonsHBox),
+		pQuitButton,
+		FALSE,
+		FALSE,
+		0);
+	
+	if (pAction != NULL)
+	{
+		GtkWidget *pApplyButton = gtk_button_new_from_stock (GTK_STOCK_APPLY);
+		g_signal_connect (G_OBJECT (pApplyButton), "clicked", G_CALLBACK(on_click_generic_apply), pMainWindow);
+		gtk_box_pack_end (GTK_BOX (pButtonsHBox),
+			pApplyButton,
+			FALSE,
+			FALSE,
+			0);
+	}
+	else
+	{
+		GtkWidget *pApplyButton = gtk_button_new_from_stock (GTK_STOCK_OK);
+		g_signal_connect (G_OBJECT (pApplyButton), "clicked", G_CALLBACK(on_click_generic_ok), pMainWindow);
+		gtk_box_pack_end (GTK_BOX (pButtonsHBox),
+			pApplyButton,
+			FALSE,
+			FALSE,
+			0);
+	}
+	
+	//\_____________ On ajoute la barre d'etat a la fin.
+	GtkWidget *pStatusBar = gtk_statusbar_new ();
+	#if (GTK_MAJOR_VERSION < 3)
+	gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (pStatusBar), FALSE);  // removed in GTK3 (gtk_window_set_has_resize_grip)
+	#endif
+	gtk_box_pack_start (GTK_BOX (pButtonsHBox),  // pMainVBox
+		pStatusBar,
+		FALSE,
+		FALSE,
+		0);
+	g_object_set_data (G_OBJECT (pMainWindow), "status-bar", pStatusBar);
+	
+	gtk_window_resize (GTK_WINDOW (pMainWindow),
+		MIN (iWidth, g_desktopGeometry.iXScreenWidth[CAIRO_DOCK_HORIZONTAL]),
+		MIN (iHeight, g_desktopGeometry.iXScreenHeight[CAIRO_DOCK_HORIZONTAL] - (g_pMainDock && g_pMainDock->container.bIsHorizontal ? g_pMainDock->iMaxDockHeight : 0)));
+	
+	gtk_widget_show_all (pMainWindow);
+	
+	if (pAction != NULL)
+	{
+		g_object_set_data (G_OBJECT (pMainWindow), "action", pAction);
+		g_object_set_data (G_OBJECT (pMainWindow), "action-data", pUserData);
+		g_object_set_data (G_OBJECT (pMainWindow), "free-data", pFreeUserData);
+		g_signal_connect (G_OBJECT (pMainWindow),
+			"delete-event",
+			G_CALLBACK (on_delete_generic_gui),
+			NULL);
+	}
+	return pMainWindow;
 }
 
 static int _reset_current_module_widget (void)
@@ -256,7 +487,9 @@ static gboolean _test_one_module_name (GtkTreeModel *model, GtkTreePath *path, G
 static CairoDockGroupKeyWidget *get_widget_from_name (CairoDockModuleInstance *pInstance, const gchar *cGroupName, const gchar *cKeyName)
 {
 	g_return_val_if_fail (s_pSimpleConfigModuleWindow != NULL, NULL);
-	return cairo_dock_gui_find_group_key_widget (s_pSimpleConfigModuleWindow, cGroupName, cKeyName);
+	GSList *pWidgetList = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "widget-list");
+	g_return_val_if_fail (pWidgetList != NULL, NULL);
+	return cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, cGroupName, cKeyName);
 }
 
 static void reload_current_widget (CairoDockModuleInstance *pInstance, int iShowPage)
