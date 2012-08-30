@@ -528,6 +528,7 @@ static void cairo_dock_update_desklet_widgets (CairoDesklet *pDesklet, GSList *p
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "size");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	g_print ("echo\n");
 	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
 	g_signal_handlers_block_matched (pOneWidget,
 		(GSignalMatchType) G_SIGNAL_MATCH_FUNC,
@@ -553,39 +554,33 @@ static void cairo_dock_update_desklet_widgets (CairoDesklet *pDesklet, GSList *p
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "x position");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	g_print ("echo\n");
 	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (pOneWidget), iRelativePositionX);
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "y position");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	g_print ("echo\n");
 	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (pOneWidget), iRelativePositionY);
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "rotation");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
+	g_print ("echo\n");
 	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
 	gtk_range_set_value (GTK_RANGE (pOneWidget), pDesklet->fRotation/G_PI*180.);
 }
 
-static void cairo_dock_update_desklet_visibility_widgets (CairoDesklet *pDesklet, GSList *pWidgetList)
+void cairo_dock_update_desklet_visibility_widgets (CairoDesklet *pDesklet, GSList *pWidgetList)
 {
 	CairoDockGroupKeyWidget *pGroupKeyWidget;
 	GtkWidget *pOneWidget;
-	Window Xid = GDK_WINDOW_XID (pDesklet->container.pWidget->window);
-	gboolean bIsAbove=FALSE, bIsBelow=FALSE;
-	cairo_dock_xwindow_is_above_or_below (Xid, &bIsAbove, &bIsBelow);  // gdk_window_get_state bugue.
-	gboolean bIsUtility = cairo_dock_window_is_utility (Xid);
-	gboolean bIsSticky =  cairo_dock_desklet_is_sticky (pDesklet);
+	gboolean bIsSticky = cairo_dock_desklet_is_sticky (pDesklet);
+	CairoDeskletVisibility iVisibility = pDesklet->iVisibility;
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "accessibility");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
 	pOneWidget = pGroupKeyWidget->pSubWidgetList->data;
-	CairoDeskletVisibility iVisibility;
-	if (bIsAbove) 						iVisibility = CAIRO_DESKLET_KEEP_ABOVE;
-	else if (bIsBelow) 					iVisibility = CAIRO_DESKLET_KEEP_BELOW;
-	else if (bIsUtility) 				iVisibility = CAIRO_DESKLET_ON_WIDGET_LAYER;
-	else if (pDesklet->bSpaceReserved)  iVisibility = CAIRO_DESKLET_RESERVE_SPACE;
-	else 								iVisibility = CAIRO_DESKLET_NORMAL;
 	gtk_combo_box_set_active (GTK_COMBO_BOX (pOneWidget), iVisibility);
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "sticky");

@@ -28,8 +28,6 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
-#include <gtk/gtkgl.h>
-
 #include "config.h"
 #include <cairo-dock.h>
 #include "cairo-desklet-menu.h"
@@ -77,12 +75,12 @@ static gboolean _start_delayed (gpointer *data)
 	{
 		g_print ("You must specify at least 1 module to load\nAvailable modules are:\n");
 		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
-		return 1;
+		exit (1);
 	}
 	else if (bListModules)
 	{
 		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
-		return 0;
+		exit (0);
 	}
 	
 	g_print ("*** %s\n", cModulesNames[0]);
@@ -158,7 +156,7 @@ int main (int argc, char** argv)
 			"print version and quit.", NULL},
 		{"server", 'S', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING,
 			&cThemeServerAdress,
-			"list all the available modules.", NULL},
+			"Address of a server containing additional themes. This will overwrite the default server address.", NULL},
 		{"List", 'L', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_NONE,
 			&bListModules,
 			"list available applets.", NULL},

@@ -54,7 +54,7 @@ set (bindir ${prefix}/bin)
 
 ########### dependencies ###############
 
-pkg_check_modules ("PACKAGE" REQUIRED "gtk+-2.0" "gthread-2.0" "cairo" "librsvg-2.0" "dbus-1" "dbus-glib-1" "libxml-2.0" "gtkglext-1.0" "xrender" "libcurl" "gldi")
+pkg_check_modules ("PACKAGE" REQUIRED "gldi")
 
 check_include_files ("math.h" HAVE_MATH_H)
 check_symbol_exists (LC_MESSAGES "locale.h" HAVE_LC_MESSAGES)

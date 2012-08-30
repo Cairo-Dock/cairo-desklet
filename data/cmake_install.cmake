@@ -33,7 +33,9 @@ IF(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 ENDIF(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 
 IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  FILE(INSTALL DESTINATION "/usr/share/cairo-desklet" TYPE FILE FILES
+  list(APPEND CPACK_ABSOLUTE_DESTINATION_FILES
+   "/usr/share/cairo-desklet/rotate-desklet.svg;/usr/share/cairo-desklet/no-input-desklet.png;/usr/share/cairo-desklet/depth-rotate-desklet.svg;/usr/share/cairo-desklet/cairo-dock-ok.svg;/usr/share/cairo-desklet/cairo-dock-cancel.svg;/usr/share/cairo-desklet/cairo-dock-logo.png;/usr/share/cairo-desklet/cairo-desklet.svg")
+FILE(INSTALL DESTINATION "/usr/share/cairo-desklet" TYPE FILE FILES
     "/home/fab/CD2/cairo-desklet/data/rotate-desklet.svg"
     "/home/fab/CD2/cairo-desklet/data/no-input-desklet.png"
     "/home/fab/CD2/cairo-desklet/data/depth-rotate-desklet.svg"
@@ -45,10 +47,14 @@ IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
 IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  FILE(INSTALL DESTINATION "/usr/share/cairo-desklet" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-desklet.conf")
+  list(APPEND CPACK_ABSOLUTE_DESTINATION_FILES
+   "/usr/share/cairo-desklet/cairo-desklet.conf")
+FILE(INSTALL DESTINATION "/usr/share/cairo-desklet" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-desklet.conf")
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
 IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  FILE(INSTALL DESTINATION "/usr/share/pixmaps" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-desklet.svg")
+  list(APPEND CPACK_ABSOLUTE_DESTINATION_FILES
+   "/usr/share/pixmaps/cairo-desklet.svg")
+FILE(INSTALL DESTINATION "/usr/share/pixmaps" TYPE FILE FILES "/home/fab/CD2/cairo-desklet/data/cairo-desklet.svg")
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
