@@ -58,7 +58,7 @@ static void _cairo_dock_add_about_page (GtkWidget *pNoteBook, const gchar *cPage
 	GtkWidget *pPageLabel, *pAboutLabel;
 	
 	pPageLabel = gtk_label_new (cPageLabel);
-	pVBox = gtk_vbox_new (FALSE, 0);
+	pVBox = _gtk_vbox_new (0);
 	pScrolledWindow = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (pScrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
 	gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (pScrolledWindow), pVBox);
@@ -86,14 +86,14 @@ static void _cairo_dock_about (GtkMenuItem *pMenuItem, CairoContainer *pContaine
 #else
 	GtkWidget *pContentBox =  GTK_DIALOG(pDialog)->vbox;
 #endif
-	GtkWidget *pHBox = gtk_hbox_new (FALSE, 0);
+	GtkWidget *pHBox = _gtk_hbox_new (0);
 	gtk_box_pack_start (GTK_BOX (pContentBox), pHBox, FALSE, FALSE, 0);
 	
 	const gchar *cImagePath = CAIRO_DESKLET_SHARE_DATA_DIR"/"CAIRO_DESKLET_LOGO;
 	GtkWidget *pImage = gtk_image_new_from_file (cImagePath);
 	gtk_box_pack_start (GTK_BOX (pHBox), pImage, FALSE, FALSE, 0);
 	
-	GtkWidget *pVBox = gtk_vbox_new (FALSE, 0);
+	GtkWidget *pVBox = _gtk_vbox_new (0);
 	gtk_box_pack_start (GTK_BOX (pHBox), pVBox, FALSE, FALSE, 0);
 	
 	GtkWidget *pLink = gtk_link_button_new_with_label (CAIRO_DOCK_SITE_URL, "Cairo-Dock (2007-2011)\n version "CAIRO_DESKLET_VERSION);
@@ -163,17 +163,25 @@ static void _cairo_dock_show_third_party_applets (GtkMenuItem *pMenuItem, gpoint
 	_launch_url ("http://www.glx-dock.org/mc_album.php?a=4");
 }
 
+static void _on_answer_quit (int iClickedButton, G_GNUC_UNUSED GtkWidget *pInteractiveWidget, G_GNUC_UNUSED gpointer data, G_GNUC_UNUSED CairoDialog *pDialog)
+{
+	if (iClickedButton == 0 || iClickedButton == -1)  // ok button or Enter.
+	{
+		gtk_main_quit ();
+	}
+}
+
 static void _cairo_dock_quit (GtkMenuItem *pMenuItem, CairoContainer *pContainer)
 {
 	//cairo_dock_on_delete (pDock->container.pWidget, NULL, pDock);
 	Icon *pIcon = NULL;
 	if (CAIRO_DOCK_IS_DESKLET (pContainer))
 		pIcon = CAIRO_DESKLET (pContainer)->pIcon;
-	
-	int answer = cairo_dock_ask_question_and_wait (_("Quit Cairo-Desklet?"), pIcon, pContainer);
-	cd_debug ("quit : %d (yes:%d)\n", answer, GTK_RESPONSE_YES);
-	if (answer == GTK_RESPONSE_YES)
-		gtk_main_quit ();
+
+	cairo_dock_show_dialog_with_question (_("Quit Cairo-Dock?"),
+		pIcon, pContainer,
+		CAIRO_DESKLET_SHARE_DATA_DIR"/"CAIRO_DESKLET_ICON,
+		(CairoDockActionOnAnswerFunc) _on_answer_quit, NULL, (GFreeFunc)NULL);
 }
 
 
@@ -235,6 +243,13 @@ static void _cairo_dock_initiate_config_module (GtkMenuItem *pMenuItem, gpointer
 	cairo_dock_show_module_instance_gui (icon->pModuleInstance, -1);
 }
 
+static void _on_answer_remove_module_instance (int iClickedButton, G_GNUC_UNUSED GtkWidget *pInteractiveWidget, Icon *icon, G_GNUC_UNUSED CairoDialog *pDialog)
+{
+	if (iClickedButton == 0 || iClickedButton == -1)  // ok button or Enter.
+	{
+		cairo_dock_remove_module_instance (icon->pModuleInstance);
+	}
+}
 static void _cairo_dock_remove_module_instance (GtkMenuItem *pMenuItem, gpointer *data)
 {
 	Icon *icon = data[0];
@@ -242,13 +257,13 @@ static void _cairo_dock_remove_module_instance (GtkMenuItem *pMenuItem, gpointer
 	if (CAIRO_DOCK_IS_DESKLET (pContainer))
 		icon = (CAIRO_DESKLET (pContainer))->pIcon;  // l'icone cliquee du desklet n'est pas forcement celle qui contient le module !
 	g_return_if_fail (CAIRO_DOCK_IS_APPLET (icon));
-	
-	gchar *question = g_strdup_printf (_("You're about to remove this applet (%s) from the dock. Are you sure?"), icon->pModuleInstance->pModule->pVisitCard->cModuleName);
-	int answer = cairo_dock_ask_question_and_wait (question, icon, CAIRO_CONTAINER (pContainer));
-	if (answer == GTK_RESPONSE_YES)
-	{
-		cairo_dock_remove_module_instance (icon->pModuleInstance);
-	}
+
+	gchar *question = g_strdup_printf (_("You're about to remove this applet (%s) from the dock. Are you sure?"), icon->pModuleInstance->pModule->pVisitCard->cTitle);
+	cairo_dock_show_dialog_with_question (question,
+		icon, CAIRO_CONTAINER (pContainer),
+		"same icon",
+		(CairoDockActionOnAnswerFunc) _on_answer_remove_module_instance, icon, (GFreeFunc)NULL);
+	g_free (question);
 }
 
 static void _cairo_dock_add_module_instance (GtkMenuItem *pMenuItem, gpointer *data)
