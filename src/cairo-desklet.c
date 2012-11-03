@@ -124,6 +124,12 @@ static gboolean _start_delayed (gpointer *data)
 
 int main (int argc, char** argv)
 {
+	#if (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION < 32)
+	if (!g_thread_supported ())
+		g_thread_init (NULL); // from 2.32, the thread system is automatically enabled
+	#endif
+	dbus_g_thread_init ();
+
 	gtk_init (&argc, &argv);
 	
 	GError *erreur = NULL;
