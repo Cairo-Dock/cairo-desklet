@@ -124,12 +124,12 @@ static gboolean _start_delayed (gpointer *data)
 
 int main (int argc, char** argv)
 {
-	#if (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION < 26) // no longer needed now...
+	#if !defined (GLIB_VERSION_2_36) // no longer needed now... (>= 2.35)
 	g_type_init (); // should initialise threads too on new versions of GLIB (>= 2.24)
-	#if (GLIB_MINOR_VERSION < 24)
+	#endif
+	#if (GLIB_MAJOR_VERSION == 2 && GLIB_MINOR_VERSION < 24)
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
-	#endif
 	#endif
 	dbus_g_thread_init ();
 
