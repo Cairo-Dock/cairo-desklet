@@ -48,13 +48,13 @@ static const  gchar *s_cCurrentModuleName = NULL;
 static gboolean on_apply_config_module_simple (gpointer data)
 {
 	cd_debug ("%s (%s)\n", __func__, s_cCurrentModuleName);
-	CairoDockModule *pModule = cairo_dock_find_module_from_name (s_cCurrentModuleName);
+	GldiModule *pModule = gldi_module_get (s_cCurrentModuleName);
 	if (pModule != NULL)
 	{
 		if (pModule->pInstancesList != NULL)
 		{
 			gchar *cConfFilePath = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "conf-file");
-			CairoDockModuleInstance *pModuleInstance = NULL;
+			GldiModuleInstance *pModuleInstance = NULL;
 			GList *pElement;
 			for (pElement = pModule->pInstancesList; pElement != NULL; pElement= pElement->next)
 			{
@@ -64,7 +64,7 @@ static gboolean on_apply_config_module_simple (gpointer data)
 			}
 			g_return_val_if_fail (pModuleInstance != NULL, TRUE);
 			
-			cairo_dock_reload_module_instance (pModuleInstance, TRUE);
+			gldi_object_reload (GLDI_OBJECT(pModuleInstance), TRUE);  // TRUE <=> reload config.
 		}
 	}
 	return TRUE;
@@ -76,7 +76,7 @@ static void on_destroy_config_module_simple (gpointer data)
 }
 
 
-static inline GtkWidget * _present_module_widget (GtkWidget *pWindow, CairoDockModuleInstance *pInstance, const gchar *cConfFilePath, const gchar *cGettextDomain, const gchar *cOriginalConfFilePath)
+static inline GtkWidget * _present_module_widget (GtkWidget *pWindow, GldiModuleInstance *pInstance, const gchar *cConfFilePath, const gchar *cGettextDomain, const gchar *cOriginalConfFilePath)
 {
 	//\_____________ On construit l'IHM du fichier de conf.
 	GKeyFile* pKeyFile = cairo_dock_open_key_file (cConfFilePath);
@@ -193,10 +193,10 @@ static void on_click_generic_apply (GtkButton *button, GtkWidget *pWindow)
 	gchar *cConfModuleName = g_object_get_data (G_OBJECT (pWindow), "module");
 	if (cConfModuleName != NULL)
 	{
-		CairoDockModule *pModule = cairo_dock_find_module_from_name (cConfModuleName);
+		GldiModule *pModule = gldi_module_get (cConfModuleName);
 		if (pModule != NULL)
 		{
-			CairoDockModuleInstance *pModuleInstance;
+			GldiModuleInstance *pModuleInstance;
 			GList *i;
 			for (i = pModule->pInstancesList; i != NULL; i = i->next)
 			{
@@ -361,7 +361,7 @@ static int _reset_current_module_widget (void)
 	return iNotebookPage;
 }
 
-static void show_module_instance_gui (CairoDockModuleInstance *pModuleInstance, int iShowPage)
+static void show_module_instance_gui (GldiModuleInstance *pModuleInstance, int iShowPage)
 {
 	int iNotebookPage = -1;
 	if (s_pSimpleConfigModuleWindow == NULL)
@@ -399,7 +399,7 @@ static void show_module_instance_gui (CairoDockModuleInstance *pModuleInstance, 
 
 static void show_module_gui (const gchar *cModuleName)
 {
-	CairoDockModule *pModule = cairo_dock_find_module_from_name (cModuleName);
+	GldiModule *pModule = gldi_module_get (cModuleName);
 	g_return_if_fail (pModule != NULL);
 	
 	if (s_pSimpleConfigModuleWindow == NULL)
@@ -415,7 +415,7 @@ static void show_module_gui (const gchar *cModuleName)
 		_reset_current_module_widget ();
 	}
 	
-	CairoDockModuleInstance *pModuleInstance = (pModule->pInstancesList != NULL ? pModule->pInstancesList->data : NULL);
+	GldiModuleInstance *pModuleInstance = (pModule->pInstancesList != NULL ? pModule->pInstancesList->data : NULL);
 	gchar *cConfFilePath = (pModuleInstance != NULL ? pModuleInstance->cConfFilePath : pModule->cConfFilePath);
 	gchar *cOriginalConfFilePath = g_strdup_printf ("%s/%s", pModule->pVisitCard->cShareDataDir, pModule->pVisitCard->cConfFileName);
 	
@@ -443,7 +443,7 @@ static void set_status_message_on_gui (const gchar *cMessage)
 	gtk_statusbar_push (GTK_STATUSBAR (pStatusBar), 0, cMessage);
 }
 
-static gboolean module_is_opened (CairoDockModuleInstance *pModuleInstance)
+static gboolean module_is_opened (GldiModuleInstance *pModuleInstance)
 {
 	if (s_pSimpleConfigModuleWindow == NULL || s_cCurrentModuleName == NULL || pModuleInstance == NULL)
 		return FALSE;
@@ -454,7 +454,7 @@ static gboolean module_is_opened (CairoDockModuleInstance *pModuleInstance)
 	gchar *cConfFilePath = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "conf-file");
 	if (cConfFilePath == NULL)
 		return FALSE;
-	CairoDockModuleInstance *pInstance;
+	GldiModuleInstance *pInstance;
 	GList *pElement;
 	for (pElement = pModuleInstance->pModule->pInstancesList; pElement != NULL; pElement= pElement->next)
 	{
@@ -484,7 +484,7 @@ static gboolean _test_one_module_name (GtkTreeModel *model, GtkTreePath *path, G
 	return FALSE;
 }
 
-static CairoDockGroupKeyWidget *get_widget_from_name (CairoDockModuleInstance *pInstance, const gchar *cGroupName, const gchar *cKeyName)
+static CairoDockGroupKeyWidget *get_widget_from_name (GldiModuleInstance *pInstance, const gchar *cGroupName, const gchar *cKeyName)
 {
 	g_return_val_if_fail (s_pSimpleConfigModuleWindow != NULL, NULL);
 	GSList *pWidgetList = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "widget-list");
@@ -492,17 +492,17 @@ static CairoDockGroupKeyWidget *get_widget_from_name (CairoDockModuleInstance *p
 	return cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, cGroupName, cKeyName);
 }
 
-static void reload_current_widget (CairoDockModuleInstance *pInstance, int iShowPage)
+static void reload_current_widget (GldiModuleInstance *pInstance, int iShowPage)
 {
 	g_return_if_fail (s_pSimpleConfigModuleWindow != NULL && s_cCurrentModuleName != NULL);
 	
-	CairoDockModule *pModule = cairo_dock_find_module_from_name (s_cCurrentModuleName);
+	GldiModule *pModule = gldi_module_get (s_cCurrentModuleName);
 	g_return_if_fail (pModule != NULL && pModule->pInstancesList != NULL);
 	
 	gchar *cConfFilePath = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "conf-file");
 	g_return_if_fail (cConfFilePath == NULL);
 	
-	CairoDockModuleInstance *pModuleInstance;
+	GldiModuleInstance *pModuleInstance;
 	GList *pElement;
 	for (pElement = pModule->pInstancesList; pElement != NULL; pElement= pElement->next)
 	{
@@ -575,7 +575,7 @@ void cairo_dock_update_desklet_visibility_widgets (CairoDesklet *pDesklet, GSLis
 {
 	CairoDockGroupKeyWidget *pGroupKeyWidget;
 	GtkWidget *pOneWidget;
-	gboolean bIsSticky = cairo_dock_desklet_is_sticky (pDesklet);
+	gboolean bIsSticky = gldi_desklet_is_sticky (pDesklet);
 	CairoDeskletVisibility iVisibility = pDesklet->iVisibility;
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "accessibility");
@@ -594,7 +594,7 @@ void cairo_dock_update_desklet_visibility_widgets (CairoDesklet *pDesklet, GSLis
 	gtk_toggle_button_set_active  (GTK_TOGGLE_BUTTON (pOneWidget), pDesklet->bPositionLocked);
 }
 
-static inline gboolean _module_is_opened (CairoDockModuleInstance *pInstance)
+static inline gboolean _module_is_opened (GldiModuleInstance *pInstance)
 {
 	if (s_pSimpleConfigModuleWindow == NULL || s_cCurrentModuleName == NULL || pInstance == NULL || pInstance->cConfFilePath == NULL)
 		return FALSE;
@@ -617,7 +617,7 @@ static inline gboolean _desklet_is_opened (CairoDesklet *pDesklet)
 	Icon *pIcon = pDesklet->pIcon;
 	g_return_val_if_fail (pIcon != NULL, FALSE);
 	
-	CairoDockModuleInstance *pModuleInstance = pIcon->pModuleInstance;
+	GldiModuleInstance *pModuleInstance = pIcon->pModuleInstance;
 	g_return_val_if_fail (pModuleInstance != NULL, FALSE);
 	
 	return _module_is_opened (pModuleInstance);

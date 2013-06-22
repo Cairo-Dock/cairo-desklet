@@ -56,7 +56,7 @@ extern gchar *g_cCurrentThemePath;
 		cd_warning ("couldn't load %s configuration", cModuleName);
 }*/
 
-static int _print_module_name (CairoDockModule *pModule, gpointer data)
+static int _print_module_name (GldiModule *pModule, gpointer data)
 {
 	if (pModule->pVisitCard->iContainerType & CAIRO_DOCK_MODULE_CAN_DESKLET)
 		g_print (" %s (%s)\n", pModule->pVisitCard->cModuleName, dgettext (pModule->pVisitCard->cGettextDomain, pModule->pVisitCard->cTitle));
@@ -67,19 +67,19 @@ static gboolean _start_delayed (gpointer *data)
 {
 	gboolean bListModules = GPOINTER_TO_INT (data[0]);
 	gchar **cModulesNames = data[1];
-	CairoDockModule *pModule;
+	GldiModule *pModule;
 	GError *erreur = NULL;
 	
 	//\___________________ activate user modules.
 	if (!bListModules && !cModulesNames)
 	{
 		g_print ("You must specify at least 1 module to load\nAvailable modules are:\n");
-		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
+		gldi_module_foreach_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
 		exit (1);
 	}
 	else if (bListModules)
 	{
-		cairo_dock_foreach_module_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
+		gldi_module_foreach_in_alphabetical_order ((GCompareFunc)_print_module_name, NULL);
 		exit (0);
 	}
 	
@@ -89,7 +89,7 @@ static gboolean _start_delayed (gpointer *data)
 	for (i = 0; cModulesNames[i] != NULL; i ++)
 	{
 		g_print ("+++ %s\n", cModulesNames[i]);
-		pModule = cairo_dock_find_module_from_name (cModulesNames[i]);
+		pModule = gldi_module_get (cModulesNames[i]);
 		if (! pModule)
 		{
 			cd_warning ("no such module (%s)", cModulesNames[i]);
@@ -97,19 +97,12 @@ static gboolean _start_delayed (gpointer *data)
 		}
 		
 		pModule->pVisitCard->iContainerType = CAIRO_DOCK_MODULE_CAN_DESKLET;
-		cairo_dock_activate_module (pModule, &erreur);
-		if (erreur != NULL)
-		{
-			cd_warning (erreur->message);
-			g_error_free (erreur);
-			erreur = NULL;
-			continue;
-		}
+		gldi_module_activate (pModule);
 		
 		/**GList *m;
 		for (m = pModule->pInstancesList; m != NULL; m = m->next)
 		{
-			CairoDockModuleInstance *pInstance = m->data;
+			GldiModuleInstance *pInstance = m->data;
 			GKeyFile *pKeyFile = cairo_dock_open_key_file (pInstance->cConfFilePath);
 			if (pKeyFile != NULL)
 			{
@@ -246,7 +239,7 @@ int main (int argc, char** argv)
 		g_bUseOpenGL);
 	
 	//\___________________ now load modules.
-	cairo_dock_load_modules_in_directory (NULL, &erreur);  // NULL <=> default directory
+	gldi_modules_new_from_directory (NULL, &erreur);  // NULL <=> default directory
 	if (erreur != NULL)
 	{
 		cd_error ("%s\n  no module available", erreur->message);
@@ -257,19 +250,19 @@ int main (int argc, char** argv)
 	cairo_dock_register_simple_gui_backend ();
 	
 	//\___________________ register to the useful notifications.
-	cairo_dock_register_notification_on_object (&myContainersMgr,
+	gldi_object_register_notification (&myContainersMgr,
 		NOTIFICATION_BUILD_CONTAINER_MENU,
-		(CairoDockNotificationFunc) cairo_dock_notification_build_container_menu,
-		CAIRO_DOCK_RUN_FIRST, NULL);
-	cairo_dock_register_notification_on_object (&myContainersMgr,
+		(GldiNotificationFunc) cairo_dock_notification_build_container_menu,
+		GLDI_RUN_FIRST, NULL);
+	gldi_object_register_notification (&myContainersMgr,
 		NOTIFICATION_BUILD_ICON_MENU,
-		(CairoDockNotificationFunc) cairo_dock_notification_build_icon_menu,
-		CAIRO_DOCK_RUN_AFTER, NULL);
+		(GldiNotificationFunc) cairo_dock_notification_build_icon_menu,
+		GLDI_RUN_AFTER, NULL);
 	
-	cairo_dock_register_notification_on_object (&myDeskletsMgr,
+	gldi_object_register_notification (&myDeskletsMgr,
 		NOTIFICATION_CONFIGURE_DESKLET,
-		(CairoDockNotificationFunc) cairo_dock_notification_configure_desklet,
-		CAIRO_DOCK_RUN_AFTER, NULL);
+		(GldiNotificationFunc) cairo_dock_notification_configure_desklet,
+		GLDI_RUN_AFTER, NULL);
 	
 	//\___________________ set a default config if none.
 	if (! g_file_test (g_cConfFile, G_FILE_TEST_EXISTS))
@@ -280,10 +273,15 @@ int main (int argc, char** argv)
 		int r = system (cCommand);
 		g_free (cCommand);
 	}
-	
+
+	/// _cairo_dock_set_signal_interception (); /// TODO
+
 	//\___________________ initiate a primary container to make a context.
-	CairoContainer *pInvisible = g_new0 (CairoContainer, 1);
-	cairo_dock_init_container (pInvisible);
+	GldiContainerAttr attr;
+	memset (&attr, 0, sizeof (GldiContainerAttr));
+	attr.bNoOpengl = g_bUseOpenGL;
+	GldiContainer *pInvisible = (GldiContainer*) gldi_object_new (GLDI_MANAGER(&myContainersMgr), &attr);
+
 	gtk_widget_show (pInvisible->pWidget);
 	gtk_widget_hide (pInvisible->pWidget);
 	
@@ -301,16 +299,16 @@ int main (int argc, char** argv)
 	cairo_dock_start_applications_manager (g_pMainDock);
 	
 	//\___________________ activate base modules.
-	CairoDockModule *pModule;
-	pModule = cairo_dock_find_module_from_name ("desklet rendering");
+	GldiModule *pModule;
+	pModule = gldi_module_get ("desklet rendering");
 	if (pModule)
-		cairo_dock_activate_module (pModule, NULL);
-	pModule = cairo_dock_find_module_from_name ("dialog rendering");
+		gldi_module_activate (pModule);
+	pModule = gldi_module_get ("dialog rendering");
 	if (pModule)
-		cairo_dock_activate_module (pModule, NULL);
-	pModule = cairo_dock_find_module_from_name ("Dbus");
+		gldi_module_activate (pModule);
+	pModule = gldi_module_get ("Dbus");
 	if (pModule)
-		cairo_dock_activate_module (pModule, NULL);
+		gldi_module_activate (pModule);
 	
 	gpointer data[2] = {GINT_TO_POINTER (bListModules), cModulesNames};
 	g_idle_add ((GSourceFunc) _start_delayed, data);

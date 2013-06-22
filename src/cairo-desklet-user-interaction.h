@@ -27,7 +27,7 @@ G_BEGIN_DECLS
 
 // Definition of the main GUI interface.
 struct _CairoDockMainGuiBackend {
-	//void (*show_module_instance_gui) (CairoDockModuleInstance *pModuleInstance);
+	//void (*show_module_instance_gui) (GldiModuleInstance *pModuleInstance);
 	void (*update_desklet_params) (CairoDesklet *pDesklet);
 	void (*update_desklet_visibility_params) (CairoDesklet *pDesklet);
 	} ;

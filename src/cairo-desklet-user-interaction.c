@@ -65,7 +65,7 @@ static gboolean _on_stop_desklet (gpointer pUserData, CairoDesklet *pDesklet)
 		}
 		s_DeskletToUpdate = NULL;
 	}
-	return CAIRO_DOCK_LET_PASS_NOTIFICATION;
+	return GLDI_NOTIFICATION_LET_PASS;
 }
 static void cairo_dock_gui_trigger_update_desklet_params (CairoDesklet *pDesklet)
 {
@@ -86,10 +86,10 @@ static void cairo_dock_gui_trigger_update_desklet_params (CairoDesklet *pDesklet
 			NULL,
 			NULL);
 		s_DeskletToUpdate = pDesklet;
-		cairo_dock_register_notification_on_object (pDesklet,
+		gldi_object_register_notification (pDesklet,
 			NOTIFICATION_DESTROY,
-			(CairoDockNotificationFunc) _on_stop_desklet,
-			CAIRO_DOCK_RUN_AFTER, NULL);
+			(GldiNotificationFunc) _on_stop_desklet,
+			GLDI_RUN_AFTER, NULL);
 	}
 }
 
@@ -97,7 +97,7 @@ gboolean cairo_dock_notification_configure_desklet (gpointer pUserData, CairoDes
 {
 	cairo_dock_gui_trigger_update_desklet_params (pDesklet);
 	
-	return CAIRO_DOCK_LET_PASS_NOTIFICATION;
+	return GLDI_NOTIFICATION_LET_PASS;
 }
 
 
@@ -132,9 +132,9 @@ void cairo_dock_gui_trigger_update_desklet_visibility (CairoDesklet *pDesklet)
 			NULL,
 			NULL);
 		s_DeskletToUpdate = pDesklet;
-		cairo_dock_register_notification_on_object (pDesklet,
+		gldi_object_register_notification (pDesklet,
 			NOTIFICATION_DESTROY,
-			(CairoDockNotificationFunc) _on_stop_desklet,
-			CAIRO_DOCK_RUN_AFTER, NULL);
+			(GldiNotificationFunc) _on_stop_desklet,
+			GLDI_RUN_AFTER, NULL);
 	}
 }
