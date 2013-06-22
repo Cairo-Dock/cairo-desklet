@@ -115,6 +115,11 @@ static gboolean _start_delayed (gpointer *data)
 	return FALSE;
 }
 
+static void _cairo_dock_quit (G_GNUC_UNUSED int signal)
+{
+	gtk_main_quit ();
+}
+
 int main (int argc, char** argv)
 {
 	#if !defined (GLIB_VERSION_2_36) // no longer needed now... (>= 2.35)
@@ -274,7 +279,7 @@ int main (int argc, char** argv)
 		g_free (cCommand);
 	}
 
-	/// _cairo_dock_set_signal_interception (); /// TODO
+	signal (SIGTERM, _cairo_dock_quit);  // Term // kill -15 (system)
 
 	//\___________________ initiate a primary container to make a context.
 	GldiContainerAttr attr;
@@ -314,7 +319,9 @@ int main (int argc, char** argv)
 	g_idle_add ((GSourceFunc) _start_delayed, data);
 	
 	gtk_main ();
-	
+
+	signal (SIGTERM, NULL);
+
 	gldi_free_all ();
 	
 	#if (LIBRSVG_MAJOR_VERSION == 2 && LIBRSVG_MINOR_VERSION < 36)
