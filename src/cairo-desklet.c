@@ -255,16 +255,16 @@ int main (int argc, char** argv)
 	cairo_dock_register_simple_gui_backend ();
 	
 	//\___________________ register to the useful notifications.
-	gldi_object_register_notification (&myContainersMgr,
+	gldi_object_register_notification (&myContainerObjectMgr,
 		NOTIFICATION_BUILD_CONTAINER_MENU,
 		(GldiNotificationFunc) cairo_dock_notification_build_container_menu,
 		GLDI_RUN_FIRST, NULL);
-	gldi_object_register_notification (&myContainersMgr,
+	gldi_object_register_notification (&myContainerObjectMgr,
 		NOTIFICATION_BUILD_ICON_MENU,
 		(GldiNotificationFunc) cairo_dock_notification_build_icon_menu,
 		GLDI_RUN_AFTER, NULL);
 	
-	gldi_object_register_notification (&myDeskletsMgr,
+	gldi_object_register_notification (&myDeskletObjectMgr,
 		NOTIFICATION_CONFIGURE_DESKLET,
 		(GldiNotificationFunc) cairo_dock_notification_configure_desklet,
 		GLDI_RUN_AFTER, NULL);
@@ -285,7 +285,7 @@ int main (int argc, char** argv)
 	GldiContainerAttr attr;
 	memset (&attr, 0, sizeof (GldiContainerAttr));
 	attr.bNoOpengl = g_bUseOpenGL;
-	GldiContainer *pInvisible = (GldiContainer*) gldi_object_new (GLDI_MANAGER(&myContainersMgr), &attr);
+	GldiContainer *pInvisible = (GldiContainer*) gldi_object_new (&myContainerObjectMgr, &attr);
 
 	gtk_widget_show (pInvisible->pWidget);
 	gtk_widget_hide (pInvisible->pWidget);
@@ -296,9 +296,9 @@ int main (int argc, char** argv)
 	_load_manager ("Labels", pKeyFile);
 	_load_manager ("System", pKeyFile);
 	_load_manager ("Icons", pKeyFile);*/
-	gldi_get_managers_config (g_cConfFile, GLDI_VERSION);  /// en fait, CAIRO_DESKLET_VERSION ...
+	gldi_managers_get_config (g_cConfFile, GLDI_VERSION);  /// en fait, CAIRO_DESKLET_VERSION ...
 	
-	gldi_load_managers ();
+	gldi_managers_load ();
 	
 	//\___________________ Start the applications manager.
 	cairo_dock_start_applications_manager (g_pMainDock);
