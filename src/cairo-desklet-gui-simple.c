@@ -319,8 +319,8 @@ GtkWidget *cairo_dock_build_generic_gui_window (const gchar *cTitle, int iWidth,
 	g_object_set_data (G_OBJECT (pMainWindow), "status-bar", pStatusBar);
 	
 	gtk_window_resize (GTK_WINDOW (pMainWindow),
-		MIN (iWidth, gldi_get_desktop_width()),
-		MIN (iHeight, gldi_get_desktop_height() - (g_pMainDock && g_pMainDock->container.bIsHorizontal ? g_pMainDock->iMaxDockHeight : 0)));
+		MIN (iWidth, gldi_desktop_get_width()),
+		MIN (iHeight, gldi_desktop_get_height() - (g_pMainDock && g_pMainDock->container.bIsHorizontal ? g_pMainDock->iMaxDockHeight : 0)));
 	
 	gtk_widget_show_all (pMainWindow);
 	
@@ -549,8 +549,8 @@ static void cairo_dock_update_desklet_widgets (CairoDesklet *pDesklet, GSList *p
 			0, 0, NULL, _cairo_dock_set_value_in_pair, NULL);
 	}
 	
-	int iRelativePositionX = (pDesklet->container.iWindowPositionX + pDesklet->container.iWidth/2 <= gldi_get_desktop_width()/2 ? pDesklet->container.iWindowPositionX : pDesklet->container.iWindowPositionX - gldi_get_desktop_width());
-	int iRelativePositionY = (pDesklet->container.iWindowPositionY + pDesklet->container.iHeight/2 <= gldi_get_desktop_height()/2 ? pDesklet->container.iWindowPositionY : pDesklet->container.iWindowPositionY - gldi_get_desktop_height());
+	int iRelativePositionX = (pDesklet->container.iWindowPositionX + pDesklet->container.iWidth/2 <= gldi_desktop_get_width()/2 ? pDesklet->container.iWindowPositionX : pDesklet->container.iWindowPositionX - gldi_desktop_get_width());
+	int iRelativePositionY = (pDesklet->container.iWindowPositionY + pDesklet->container.iHeight/2 <= gldi_desktop_get_height()/2 ? pDesklet->container.iWindowPositionY : pDesklet->container.iWindowPositionY - gldi_desktop_get_height());
 	
 	pGroupKeyWidget = cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, "Desklet", "x position");
 	g_return_if_fail (pGroupKeyWidget != NULL && pGroupKeyWidget->pSubWidgetList != NULL);
