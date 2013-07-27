@@ -43,7 +43,7 @@ void cairo_dock_register_config_gui_backend (CairoDockMainGuiBackend *pBackend)
 
 static guint s_iSidUpdateDesklet = 0;
 static CairoDesklet *s_DeskletToUpdate = NULL;
-static gboolean _update_desklet_params (gpointer data)
+static gboolean _update_desklet_params (G_GNUC_UNUSED gpointer data)
 {
 	if (s_DeskletToUpdate != NULL)
 	{
@@ -54,7 +54,7 @@ static gboolean _update_desklet_params (gpointer data)
 	s_iSidUpdateDesklet = 0;
 	return FALSE;
 }
-static gboolean _on_stop_desklet (gpointer pUserData, CairoDesklet *pDesklet)
+static gboolean _on_stop_desklet (G_GNUC_UNUSED gpointer pUserData, CairoDesklet *pDesklet)
 {
 	if (s_DeskletToUpdate == pDesklet)  // the desklet we were about to update has been destroyed, cancel.
 	{
@@ -93,7 +93,7 @@ static void cairo_dock_gui_trigger_update_desklet_params (CairoDesklet *pDesklet
 	}
 }
 
-gboolean cairo_dock_notification_configure_desklet (gpointer pUserData, CairoDesklet *pDesklet)
+gboolean cairo_dock_notification_configure_desklet (G_GNUC_UNUSED gpointer pUserData, CairoDesklet *pDesklet)
 {
 	cairo_dock_gui_trigger_update_desklet_params (pDesklet);
 	
@@ -102,7 +102,7 @@ gboolean cairo_dock_notification_configure_desklet (gpointer pUserData, CairoDes
 
 
 static guint s_iSidUpdateVisiDesklet = 0;
-static gboolean _update_desklet_visibility_params (gpointer data)
+static gboolean _update_desklet_visibility_params (G_GNUC_UNUSED gpointer data)
 {
 	if (s_DeskletToUpdate != NULL)
 	{

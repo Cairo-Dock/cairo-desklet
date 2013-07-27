@@ -45,7 +45,7 @@
 static GtkWidget *s_pSimpleConfigModuleWindow = NULL;
 static const  gchar *s_cCurrentModuleName = NULL;
 
-static gboolean on_apply_config_module_simple (gpointer data)
+static gboolean on_apply_config_module_simple (G_GNUC_UNUSED gpointer data)
 {
 	cd_debug ("%s (%s)\n", __func__, s_cCurrentModuleName);
 	GldiModule *pModule = gldi_module_get (s_cCurrentModuleName);
@@ -70,7 +70,7 @@ static gboolean on_apply_config_module_simple (gpointer data)
 	return TRUE;
 }
 
-static void on_destroy_config_module_simple (gpointer data)
+static void on_destroy_config_module_simple (G_GNUC_UNUSED gpointer data)
 {
 	s_pSimpleConfigModuleWindow = NULL;
 }
@@ -157,7 +157,7 @@ void cairo_dock_reload_generic_gui (GtkWidget *pWindow)
 	gtk_widget_show_all (pNoteBook);
 }
 
-static gboolean on_delete_generic_gui (GtkWidget *pWidget, GdkEvent *event, GMainLoop *pBlockingLoop)
+static gboolean on_delete_generic_gui (GtkWidget *pWidget, G_GNUC_UNUSED GdkEvent *event, GMainLoop *pBlockingLoop)
 {
 	cd_debug ("%s ()\n", __func__);
 	if (pBlockingLoop != NULL && g_main_loop_is_running (pBlockingLoop))
@@ -173,7 +173,7 @@ static gboolean on_delete_generic_gui (GtkWidget *pWidget, GdkEvent *event, GMai
 	GSList *pWidgetList = g_object_get_data (G_OBJECT (pWidget), "widget-list");
 	cairo_dock_free_generated_widget_list (pWidgetList);
 	
-	GPtrArray *pDataGarbage = g_object_get_data (G_OBJECT (pWidget), "garbage");
+	// GPtrArray *pDataGarbage = g_object_get_data (G_OBJECT (pWidget), "garbage");
 	/// nettoyer.
 	
 	gchar *cConfFilePath = g_object_get_data (G_OBJECT (pWidget), "conf-file");
@@ -182,7 +182,7 @@ static gboolean on_delete_generic_gui (GtkWidget *pWidget, GdkEvent *event, GMai
 	return (pBlockingLoop != NULL);  // TRUE <=> ne pas detruire la fenetre.
 }
 
-static void on_click_generic_apply (GtkButton *button, GtkWidget *pWindow)
+static void on_click_generic_apply (G_GNUC_UNUSED GtkButton *button, GtkWidget *pWindow)
 {
 	//g_print ("%s ()\n", __func__);
 	GSList *pWidgetList = g_object_get_data (G_OBJECT (pWindow), "widget-list");
@@ -237,7 +237,7 @@ static void on_click_generic_apply (GtkButton *button, GtkWidget *pWindow)
 		g_object_set_data (G_OBJECT (pWindow), "result", GINT_TO_POINTER (1));
 }
 
-static void on_click_generic_quit (GtkButton *button, GtkWidget *pWindow)
+static void on_click_generic_quit (G_GNUC_UNUSED GtkButton *button, GtkWidget *pWindow)
 {
 	cd_debug ("%s ()\n", __func__);
 	GMainLoop *pBlockingLoop = g_object_get_data (G_OBJECT (pWindow), "loop");
@@ -397,6 +397,7 @@ static void show_module_instance_gui (GldiModuleInstance *pModuleInstance, int i
 	}
 }
 
+/*
 static void show_module_gui (const gchar *cModuleName)
 {
 	GldiModule *pModule = gldi_module_get (cModuleName);
@@ -429,6 +430,7 @@ static void show_module_gui (const gchar *cModuleName)
 	gtk_widget_show_all (s_pSimpleConfigModuleWindow);
 	g_free (cOriginalConfFilePath);
 }
+*/
 
 static void set_status_message_on_gui (const gchar *cMessage)
 {
@@ -443,6 +445,7 @@ static void set_status_message_on_gui (const gchar *cMessage)
 	gtk_statusbar_push (GTK_STATUSBAR (pStatusBar), 0, cMessage);
 }
 
+/*
 static gboolean module_is_opened (GldiModuleInstance *pModuleInstance)
 {
 	if (s_pSimpleConfigModuleWindow == NULL || s_cCurrentModuleName == NULL || pModuleInstance == NULL)
@@ -464,8 +467,10 @@ static gboolean module_is_opened (GldiModuleInstance *pModuleInstance)
 	}
 	return FALSE;
 }
+*/
 
-static gboolean _test_one_module_name (GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer *data)
+/*
+static gboolean _test_one_module_name (GtkTreeModel *model, G_GNUC_UNUSED GtkTreePath *path, GtkTreeIter *iter, gpointer *data)
 {
 	gchar *cResult = NULL;
 	gtk_tree_model_get (model, iter, CAIRO_DOCK_MODEL_RESULT, &cResult, -1);
@@ -483,8 +488,9 @@ static gboolean _test_one_module_name (GtkTreeModel *model, GtkTreePath *path, G
 	g_free (cResult);
 	return FALSE;
 }
+*/
 
-static CairoDockGroupKeyWidget *get_widget_from_name (GldiModuleInstance *pInstance, const gchar *cGroupName, const gchar *cKeyName)
+static CairoDockGroupKeyWidget *get_widget_from_name (G_GNUC_UNUSED GldiModuleInstance *pInstance, const gchar *cGroupName, const gchar *cKeyName)
 {
 	g_return_val_if_fail (s_pSimpleConfigModuleWindow != NULL, NULL);
 	GSList *pWidgetList = g_object_get_data (G_OBJECT (s_pSimpleConfigModuleWindow), "widget-list");
@@ -492,7 +498,7 @@ static CairoDockGroupKeyWidget *get_widget_from_name (GldiModuleInstance *pInsta
 	return cairo_dock_gui_find_group_key_widget_in_list (pWidgetList, cGroupName, cKeyName);
 }
 
-static void reload_current_widget (GldiModuleInstance *pInstance, int iShowPage)
+static void reload_current_widget (G_GNUC_UNUSED GldiModuleInstance *pInstance, int iShowPage)
 {
 	g_return_if_fail (s_pSimpleConfigModuleWindow != NULL && s_cCurrentModuleName != NULL);
 	

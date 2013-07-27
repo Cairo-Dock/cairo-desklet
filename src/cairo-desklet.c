@@ -56,7 +56,7 @@ extern gchar *g_cCurrentThemePath;
 		cd_warning ("couldn't load %s configuration", cModuleName);
 }*/
 
-static int _print_module_name (GldiModule *pModule, gpointer data)
+static int _print_module_name (GldiModule *pModule, G_GNUC_UNUSED gpointer data)
 {
 	if (pModule->pVisitCard->iContainerType & CAIRO_DOCK_MODULE_CAN_DESKLET)
 		g_print (" %s (%s)\n", pModule->pVisitCard->cModuleName, dgettext (pModule->pVisitCard->cGettextDomain, pModule->pVisitCard->cTitle));
@@ -68,8 +68,7 @@ static gboolean _start_delayed (gpointer *data)
 	gboolean bListModules = GPOINTER_TO_INT (data[0]);
 	gchar **cModulesNames = data[1];
 	GldiModule *pModule;
-	GError *erreur = NULL;
-	
+
 	//\___________________ activate user modules.
 	if (!bListModules && !cModulesNames)
 	{
@@ -276,6 +275,8 @@ int main (int argc, char** argv)
 		gchar *cCommand = g_strdup_printf ("/bin/cp \"%s\" \"%s\"", CAIRO_DESKLET_SHARE_DATA_DIR"/cairo-desklet.conf", g_cConfFile);
 		cd_message (cCommand);
 		int r = system (cCommand);
+		if (r < 0)
+			cd_warning ("Error when launching: %s", cCommand);
 		g_free (cCommand);
 	}
 
