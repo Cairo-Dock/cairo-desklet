@@ -266,18 +266,18 @@ GtkWidget *cairo_dock_build_generic_gui_window (const gchar *cTitle, int iWidth,
 	if (cTitle != NULL)
 		gtk_window_set_title (GTK_WINDOW (pMainWindow), cTitle);
 
-	GtkWidget *pMainVBox = _gtk_vbox_new (CAIRO_DOCK_FRAME_MARGIN);
+	GtkWidget *pMainVBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, CAIRO_DOCK_FRAME_MARGIN);
 	gtk_container_add (GTK_CONTAINER (pMainWindow), pMainVBox);
 	
 	//\_____________ On ajoute les boutons.
-	GtkWidget *pButtonsHBox = _gtk_hbox_new (CAIRO_DOCK_FRAME_MARGIN*2);
+	GtkWidget *pButtonsHBox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, CAIRO_DOCK_FRAME_MARGIN*2);
 	gtk_box_pack_end (GTK_BOX (pMainVBox),
 		pButtonsHBox,
 		FALSE,
 		FALSE,
 		0);
 	
-	GtkWidget *pQuitButton = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
+	GtkWidget *pQuitButton = gtk_button_new_with_label (_("Close"));
 	g_signal_connect (G_OBJECT (pQuitButton), "clicked", G_CALLBACK(on_click_generic_quit), pMainWindow);
 	gtk_box_pack_end (GTK_BOX (pButtonsHBox),
 		pQuitButton,
@@ -287,7 +287,7 @@ GtkWidget *cairo_dock_build_generic_gui_window (const gchar *cTitle, int iWidth,
 	
 	if (pAction != NULL)
 	{
-		GtkWidget *pApplyButton = gtk_button_new_from_stock (GTK_STOCK_APPLY);
+		GtkWidget *pApplyButton = gtk_button_new_with_label (_("Apply"));
 		g_signal_connect (G_OBJECT (pApplyButton), "clicked", G_CALLBACK(on_click_generic_apply), pMainWindow);
 		gtk_box_pack_end (GTK_BOX (pButtonsHBox),
 			pApplyButton,
@@ -297,7 +297,7 @@ GtkWidget *cairo_dock_build_generic_gui_window (const gchar *cTitle, int iWidth,
 	}
 	else
 	{
-		GtkWidget *pApplyButton = gtk_button_new_from_stock (GTK_STOCK_OK);
+		GtkWidget *pApplyButton = gtk_button_new_with_label (_("OK"));
 		g_signal_connect (G_OBJECT (pApplyButton), "clicked", G_CALLBACK(on_click_generic_ok), pMainWindow);
 		gtk_box_pack_end (GTK_BOX (pButtonsHBox),
 			pApplyButton,
@@ -306,11 +306,8 @@ GtkWidget *cairo_dock_build_generic_gui_window (const gchar *cTitle, int iWidth,
 			0);
 	}
 	
-	//\_____________ On ajoute la barre d'etat a la fin.
+	//\_____________ We add a status bar at the end.
 	GtkWidget *pStatusBar = gtk_statusbar_new ();
-	#if (GTK_MAJOR_VERSION < 3)
-	gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (pStatusBar), FALSE);  // removed in GTK3 (gtk_window_set_has_resize_grip)
-	#endif
 	gtk_box_pack_start (GTK_BOX (pButtonsHBox),  // pMainVBox
 		pStatusBar,
 		FALSE,

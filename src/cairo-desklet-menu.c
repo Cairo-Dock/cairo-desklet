@@ -58,7 +58,7 @@ static void _cairo_dock_add_about_page (GtkWidget *pNoteBook, const gchar *cPage
 	GtkWidget *pPageLabel, *pAboutLabel;
 	
 	pPageLabel = gtk_label_new (cPageLabel);
-	pVBox = _gtk_vbox_new (0);
+	pVBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	pScrolledWindow = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (pScrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
 	#if GTK_CHECK_VERSION (3, 8, 0)
@@ -84,20 +84,16 @@ static void _cairo_dock_about (G_GNUC_UNUSED GtkMenuItem *pMenuItem, GldiContain
 		/*GTK_MESSAGE_INFO*/GTK_MESSAGE_OTHER,
 		GTK_BUTTONS_CLOSE,
 		NULL/*"\nCairo-Dock (2007-2011)\n version "CAIRO_DESKLET_VERSION*/);
-	
-#if (GTK_MAJOR_VERSION > 2 || GTK_MINOR_VERSION >= 14)
+
 	GtkWidget *pContentBox = gtk_dialog_get_content_area (GTK_DIALOG(pDialog));
-#else
-	GtkWidget *pContentBox =  GTK_DIALOG(pDialog)->vbox;
-#endif
-	GtkWidget *pHBox = _gtk_hbox_new (0);
+	GtkWidget *pHBox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (pContentBox), pHBox, FALSE, FALSE, 0);
 	
 	const gchar *cImagePath = CAIRO_DESKLET_SHARE_DATA_DIR"/"CAIRO_DESKLET_LOGO;
 	GtkWidget *pImage = gtk_image_new_from_file (cImagePath);
 	gtk_box_pack_start (GTK_BOX (pHBox), pImage, FALSE, FALSE, 0);
 	
-	GtkWidget *pVBox = _gtk_vbox_new (0);
+	GtkWidget *pVBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_pack_start (GTK_BOX (pHBox), pVBox, FALSE, FALSE, 0);
 	
 	GtkWidget *pLink = gtk_link_button_new_with_label (CAIRO_DOCK_SITE_URL, "Cairo-Dock (2007-2011)\n version "CAIRO_DESKLET_VERSION);
@@ -194,33 +190,23 @@ static void _cairo_dock_quit (G_GNUC_UNUSED GtkMenuItem *pMenuItem, GldiContaine
 gboolean cairo_dock_notification_build_container_menu (G_GNUC_UNUSED gpointer *pUserData, G_GNUC_UNUSED Icon *icon, GldiContainer *pContainer, GtkWidget *menu, G_GNUC_UNUSED gboolean *bDiscardMenu)
 {
 	//\_________________________ On ajoute le sous-menu Cairo-Dock, toujours present.
-	GtkWidget *pMenuItem, *image;
-	GdkPixbuf *pixbuf;
-	pMenuItem = gtk_image_menu_item_new_with_label ("Cairo-Desklet");
-	pixbuf = gdk_pixbuf_new_from_file_at_size (CAIRO_DESKLET_SHARE_DATA_DIR"/"CAIRO_DESKLET_ICON, 32, 32, NULL);
-	image = gtk_image_new_from_pixbuf (pixbuf);
-	g_object_unref (pixbuf);
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (pMenuItem), image);
-	gtk_menu_shell_append  (GTK_MENU_SHELL (menu), pMenuItem);
-	
-	GtkWidget *pSubMenu = gtk_menu_new ();
-	gtk_menu_item_set_submenu (GTK_MENU_ITEM (pMenuItem), pSubMenu);
-	
-	pMenuItem = cairo_dock_add_in_menu_with_stock_and_data (_("Get more applets!"),
-		GTK_STOCK_ADD,
+	GtkWidget *pSubMenu = cairo_dock_create_sub_menu ("Cairo-Desklet", menu, CAIRO_DESKLET_SHARE_DATA_DIR"/"CAIRO_DESKLET_ICON);
+
+	GtkWidget *pMenuItem = cairo_dock_add_in_menu_with_stock_and_data (_("Get more applets!"),
+		GLDI_ICON_NAME_ADD,
 		(GCallback)_cairo_dock_show_third_party_applets,
 		pSubMenu,
 		NULL);
 	gtk_widget_set_tooltip_text (pMenuItem, _("Third-party applets provide integration with many programs, like Pidgin"));
-	
+
 	cairo_dock_add_in_menu_with_stock_and_data (_("About"),
-		GTK_STOCK_ABOUT,
+		GLDI_ICON_NAME_ABOUT,
 		(GCallback)_cairo_dock_about,
 		pSubMenu,
 		pContainer);
-	
+
 	cairo_dock_add_in_menu_with_stock_and_data (_("Quit"),
-		GTK_STOCK_QUIT,
+		GLDI_ICON_NAME_QUIT,
 		(GCallback)_cairo_dock_quit,
 		pSubMenu,
 		pContainer);
@@ -514,19 +500,19 @@ gboolean cairo_dock_notification_build_icon_menu (G_GNUC_UNUSED gpointer *pUserD
 		GtkWidget *pSubMenuOtherActions = gtk_menu_new ();
 		gtk_menu_item_set_submenu (GTK_MENU_ITEM (pMenuItem), pSubMenuOtherActions);
 		
-		_add_entry_in_menu (_("Move to this desktop"), GTK_STOCK_JUMP_TO, _cairo_dock_move_appli_to_current_desktop, pSubMenuOtherActions);
+		_add_entry_in_menu (_("Move to this desktop"), GLDI_ICON_NAME_JUMP_TO, _cairo_dock_move_appli_to_current_desktop, pSubMenuOtherActions);
 		
-		_add_entry_in_menu (icon->pAppli->bIsFullScreen ? _("Not Fullscreen") : _("Fullscreen"), icon->pAppli->bIsFullScreen ? GTK_STOCK_LEAVE_FULLSCREEN : GTK_STOCK_FULLSCREEN, _cairo_dock_set_appli_fullscreen, pSubMenuOtherActions);
+		_add_entry_in_menu (icon->pAppli->bIsFullScreen ? _("Not Fullscreen") : _("Fullscreen"), icon->pAppli->bIsFullScreen ? GLDI_ICON_NAME_LEAVE_FULLSCREEN : GLDI_ICON_NAME_FULLSCREEN, _cairo_dock_set_appli_fullscreen, pSubMenuOtherActions);
 		
 		gboolean bIsAbove=FALSE, bIsBelow=FALSE;
 		gldi_window_is_above_or_below (icon->pAppli, &bIsAbove, &bIsBelow);
-		_add_entry_in_menu (bIsAbove ? _("Don't keep above") : _("Keep above"), bIsAbove ? GTK_STOCK_GOTO_BOTTOM : GTK_STOCK_GOTO_TOP, _cairo_dock_change_window_above, pSubMenuOtherActions);
+		_add_entry_in_menu (bIsAbove ? _("Don't keep above") : _("Keep above"), bIsAbove ? GLDI_ICON_NAME_GOTO_BOTTOM : GLDI_ICON_NAME_GOTO_TOP, _cairo_dock_change_window_above, pSubMenuOtherActions);
 		
 		_add_desktops_entry (pSubMenuOtherActions, data);
 		
-		_add_entry_in_menu (_("Kill"), GTK_STOCK_CANCEL, _cairo_dock_kill_appli, pSubMenuOtherActions);
+		_add_entry_in_menu (_("Kill"), GLDI_ICON_NAME_CLOSE, _cairo_dock_kill_appli, pSubMenuOtherActions);
 		
-		_add_entry_in_menu (_("Show"), GTK_STOCK_FIND, _cairo_dock_show_appli, menu);
+		_add_entry_in_menu (_("Show"), GLDI_ICON_NAME_FIND, _cairo_dock_show_appli, menu);
 
 		gboolean bCanMinimize, bCanMaximize, bCanClose;
 		gldi_window_can_minimize_maximize_close (icon->pAppli, &bCanMinimize, &bCanMaximize, &bCanClose);
@@ -555,21 +541,21 @@ gboolean cairo_dock_notification_build_icon_menu (G_GNUC_UNUSED gpointer *pUserD
 	pMenuItem = gtk_separator_menu_item_new ();
 	gtk_menu_shell_append (GTK_MENU_SHELL (menu), pMenuItem);
 	
-	_add_entry_in_menu (_("Configure this applet"), GTK_STOCK_PROPERTIES, _cairo_dock_initiate_config_module, menu);
+	_add_entry_in_menu (_("Configure"), GLDI_ICON_NAME_EDIT, _cairo_dock_initiate_config_module, menu);
 	
 	if (pIconModule->pModuleInstance->pModule->pInstancesList->next != NULL)
-		_add_entry_in_menu (_("Remove this applet"), GTK_STOCK_REMOVE, _cairo_dock_remove_module_instance, menu);
+		_add_entry_in_menu (_("Remove"), GLDI_ICON_NAME_REMOVE, _cairo_dock_remove_module_instance, menu);
 	
 	if (pIconModule->pModuleInstance->pModule->pVisitCard->bMultiInstance)
 	{
-		_add_entry_in_menu (_("Launch another instance of this applet"), GTK_STOCK_ADD, _cairo_dock_add_module_instance, menu);
+		_add_entry_in_menu (_("Duplicate"), GLDI_ICON_NAME_ADD, _cairo_dock_add_module_instance, menu);
 	}
 
 	//\_________________________ On rajoute les actions de positionnement d'un desklet.
 	pMenuItem = gtk_separator_menu_item_new ();
 	gtk_menu_shell_append (GTK_MENU_SHELL (menu), pMenuItem);
 	
-	GtkWidget *pSubMenuAccessibility = cairo_dock_create_sub_menu (_("Visibility"), menu, GTK_STOCK_FIND);
+	GtkWidget *pSubMenuAccessibility = cairo_dock_create_sub_menu (_("Visibility"), menu, GLDI_ICON_NAME_FIND);
 	
 	GSList *group = NULL;
 
